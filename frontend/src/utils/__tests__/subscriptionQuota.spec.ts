@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { getExpirationDateRelation, getRemainingExpiryDuration } from '../subscriptionQuota'
+import type { UserSubscription } from '@/types'
+import {
+  getExpirationDateRelation,
+  getRemainingExpiryDuration,
+  getSubscriptionDailyLimit,
+  getSubscriptionWeeklyLimit
+} from '../subscriptionQuota'
 
 describe('subscription expiry timing', () => {
   it('uses local calendar dates for today and tomorrow', () => {
@@ -60,5 +66,33 @@ describe('subscription expiry timing', () => {
       unit: 'days',
       days: 2
     })
+  })
+})
+
+describe('subscription effective quota limits', () => {
+  const subscription = {
+    group: { daily_limit_usd: 100, weekly_limit_usd: 500 }
+  } as UserSubscription
+
+  it('uses fixed limits when the dynamic object is absent', () => {
+    expect(getSubscriptionDailyLimit(subscription)).toBe(100)
+    expect(getSubscriptionWeeklyLimit(subscription)).toBe(500)
+  })
+
+  it.each([0, null, 25])('uses effective values exactly, including unlimited %s', (limit) => {
+    const dynamicSubscription = {
+      ...subscription,
+      quota_limits: {
+        dynamic_enabled: true,
+        positions: 2,
+        abnormal: false,
+        dynamic_daily_limit_usd: 25,
+        dynamic_weekly_limit_usd: 25,
+        effective_daily_limit_usd: limit,
+        effective_weekly_limit_usd: limit
+      }
+    }
+    expect(getSubscriptionDailyLimit(dynamicSubscription)).toBe(limit)
+    expect(getSubscriptionWeeklyLimit(dynamicSubscription)).toBe(limit)
   })
 })

@@ -434,7 +434,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		subscriptionType = SubscriptionTypeStandard
 	}
 
-	// 限额字段：nil/负数 表示"无限制"，0 表示"不允许用量"，正数表示具体限额
+	// 限额字段：nil/负数/0 表示"无限制"，正数表示具体限额。
 	dailyLimit := normalizeLimit(input.DailyLimitUSD)
 	weeklyLimit := normalizeLimit(input.WeeklyLimitUSD)
 	monthlyLimit := normalizeLimit(input.MonthlyLimitUSD)
@@ -584,6 +584,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		IsExclusive:                     input.IsExclusive,
 		Status:                          StatusActive,
 		SubscriptionType:                subscriptionType,
+		DynamicQuotaEnabled:             input.DynamicQuotaEnabled,
 		DailyLimitUSD:                   dailyLimit,
 		WeeklyLimitUSD:                  weeklyLimit,
 		MonthlyLimitUSD:                 monthlyLimit,
@@ -679,10 +680,14 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		group.AccountCount = int64(len(accountIDsToCopy))
 	}
 
+	s.refreshGroupDynamicQuota(ctx, group.ID)
+	if s.dynamicQuotaUpdater != nil {
+		return s.groupRepo.GetByID(ctx, group.ID)
+	}
 	return group, nil
 }
 
-// normalizeLimit 将负数转换为 nil（表示无限制），0 保留（表示限额为零）
+// normalizeLimit 将负数转换为 nil；0 保留，沿用无限额语义。
 func normalizeLimit(limit *float64) *float64 {
 	if limit == nil || *limit < 0 {
 		return nil
@@ -781,6 +786,9 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
 		normalizeUpdateGroupInputForSimpleMode(input)
 	}
+	if input.DynamicQuotaEnabled != nil {
+		group.DynamicQuotaEnabled = *input.DynamicQuotaEnabled
+	}
 
 	// 渠道缓存里存了 groupID → platform 的映射，改了平台要让它失效（见函数末尾）
 	previousPlatform := group.Platform
@@ -828,7 +836,7 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if input.SubscriptionType != "" {
 		group.SubscriptionType = input.SubscriptionType
 	}
-	// 限额字段：nil 表示不修改，负数表示"无限制"，0 表示"不允许用量"，正数表示具体限额。
+	// 限额字段：nil 表示不修改，负数清除限额，0 表示无限额，正数表示具体限额。
 	if input.DailyLimitUSD != nil {
 		group.DailyLimitUSD = normalizeLimit(input.DailyLimitUSD)
 	}
@@ -1167,6 +1175,10 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 		}
 	}
 
+	s.refreshGroupDynamicQuota(ctx, group.ID)
+	if s.dynamicQuotaUpdater != nil {
+		return s.groupRepo.GetByID(ctx, group.ID)
+	}
 	return group, nil
 }
 

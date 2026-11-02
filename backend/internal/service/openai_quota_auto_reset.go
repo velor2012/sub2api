@@ -89,13 +89,14 @@ type openAIAutoResetRecovery interface {
 // OpenAIQuotaAutoResetService 通过小型去重队列承接实时信号，并用分钟扫描补偿
 // 重启、漏事件和多实例读取；真正消费仍由 PostgreSQL 幂等记录串行化。
 type OpenAIQuotaAutoResetService struct {
-	accountRepo AccountRepository
-	quota       openAIAutoResetQuota
-	recoverer   openAIAutoResetRecovery
-	idempotency *IdempotencyCoordinator
-	audit       *AuditLogService
-	settings    *SettingService
-	leaderLock  LeaderLockCache
+	accountRepo         AccountRepository
+	quota               openAIAutoResetQuota
+	recoverer           openAIAutoResetRecovery
+	idempotency         *IdempotencyCoordinator
+	audit               *AuditLogService
+	settings            *SettingService
+	leaderLock          LeaderLockCache
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater
 
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -600,6 +601,7 @@ func (s *OpenAIQuotaAutoResetService) persistFreshUsage(ctx context.Context, acc
 		if err := s.accountRepo.UpdateExtra(ctx, accountID, updates); err != nil {
 			return err
 		}
+		s.dynamicQuotaUpdater.AccountChanged(ctx, accountID)
 	}
 	return s.quota.CacheResetCreditsSnapshot(ctx, accountID, usage.RateLimitResetCredits)
 }

@@ -343,6 +343,10 @@ func (s *adminServiceImpl) DuplicateAccount(ctx context.Context, id int64, actor
 	}
 	duplicate.AccountGroups = groups
 	duplicate.GroupIDs = groupIDs
+	AfterAccountCommit(ctx, func(commitCtx context.Context) {
+		s.refreshDynamicQuotaGroups(commitCtx, groupIDs)
+		s.refreshAccountDynamicQuota(commitCtx, duplicate.ID)
+	})
 	return duplicate, nil
 }
 
@@ -546,7 +550,9 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 		}
 	}
 
-	AfterAccountCommit(ctx, func(_ context.Context) {
+	AfterAccountCommit(ctx, func(commitCtx context.Context) {
+		s.refreshDynamicQuotaGroups(commitCtx, groupIDs)
+		s.refreshAccountDynamicQuota(commitCtx, account.ID)
 		// OAuth 账号：创建后异步设置隐私。
 		// 使用 Ensure（幂等）而非 Force：新建账号 Extra 为空时效果相同，但更安全。
 		if account.Type == AccountTypeOAuth {
@@ -927,6 +933,10 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	if err != nil {
 		return nil, err
 	}
+	AfterAccountCommit(ctx, func(commitCtx context.Context) {
+		s.refreshDynamicQuotaGroups(commitCtx, account.GroupIDs, updated.GroupIDs)
+		s.refreshAccountDynamicQuota(commitCtx, account.ID)
+	})
 	return updated, nil
 }
 
@@ -955,7 +965,18 @@ func (s *adminServiceImpl) UpdateAccountExtra(ctx context.Context, id int64, upd
 	if len(updates) == 0 {
 		return nil
 	}
-	return s.accountRepo.UpdateExtra(ctx, id, updates)
+	if err := s.accountRepo.UpdateExtra(ctx, id, updates); err != nil {
+		return err
+	}
+	for key := range updates {
+		if strings.HasPrefix(key, "codex_") {
+			AfterAccountCommit(ctx, func(commitCtx context.Context) {
+				s.refreshAccountDynamicQuota(commitCtx, id)
+			})
+			break
+		}
+	}
+	return nil
 }
 
 // BulkUpdateAccounts updates multiple accounts in one request.
@@ -1007,7 +1028,7 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 
 	// 预取所有目标账号，供凭据守卫/代理守卫/混合渠道检查共用，避免多次 DB 查询。
 	var cachedTargets []*Account
-	if len(input.Credentials) > 0 || input.ProxyID != nil || needMixedChannelCheck || openAISettings.any() || input.ProbeEnabled != nil || input.RateMultiplier != nil {
+	if len(input.Credentials) > 0 || input.ProxyID != nil || needMixedChannelCheck || openAISettings.any() || input.ProbeEnabled != nil || input.RateMultiplier != nil || (s.dynamicQuotaUpdater != nil && input.GroupIDs != nil) {
 		loaded, err := s.accountRepo.GetByIDs(ctx, input.AccountIDs)
 		if err != nil {
 			return nil, err
@@ -1212,6 +1233,28 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 		result.Results = append(result.Results, entry)
 	}
 
+	if s.dynamicQuotaUpdater != nil {
+		AfterAccountCommit(ctx, func(commitCtx context.Context) {
+			if input.GroupIDs != nil {
+				groupIDs := make([][]int64, 0, len(cachedTargets)+1)
+				groupIDs = append(groupIDs, *input.GroupIDs)
+				for _, account := range cachedTargets {
+					if account != nil {
+						groupIDs = append(groupIDs, account.GroupIDs)
+					}
+				}
+				s.refreshDynamicQuotaGroups(commitCtx, groupIDs...)
+				for _, accountID := range input.AccountIDs {
+					s.refreshAccountDynamicQuota(commitCtx, accountID)
+				}
+			} else {
+				for _, accountID := range input.AccountIDs {
+					s.refreshAccountDynamicQuota(commitCtx, accountID)
+				}
+			}
+		})
+	}
+
 	return result, nil
 }
 
@@ -1290,6 +1333,16 @@ func (s *adminServiceImpl) resolveBulkUpdateTargetIDs(ctx context.Context, filte
 }
 
 func (s *adminServiceImpl) DeleteAccount(ctx context.Context, id int64) error {
+	var groupIDs [][]int64
+	if s.dynamicQuotaUpdater != nil {
+		account, err := s.accountRepo.GetByID(ctx, id)
+		if err != nil && !errors.Is(err, ErrAccountNotFound) {
+			return err
+		}
+		if account != nil {
+			groupIDs = append(groupIDs, account.GroupIDs)
+		}
+	}
 	// 级联删除 spark 影子账号（先删影子，再删母账号）
 	shadows, err := s.accountRepo.ListShadowsByParent(ctx, id)
 	if err != nil {
@@ -1299,10 +1352,16 @@ func (s *adminServiceImpl) DeleteAccount(ctx context.Context, id int64) error {
 		if err := s.accountRepo.Delete(ctx, shadow.ID); err != nil {
 			return fmt.Errorf("cascade delete spark shadow %d: %w", shadow.ID, err)
 		}
+		if s.dynamicQuotaUpdater != nil {
+			groupIDs = append(groupIDs, shadow.GroupIDs)
+		}
 	}
 	if err := s.accountRepo.Delete(ctx, id); err != nil {
 		return err
 	}
+	AfterAccountCommit(ctx, func(commitCtx context.Context) {
+		s.refreshDynamicQuotaGroups(commitCtx, groupIDs...)
+	})
 	return nil
 }
 
@@ -1491,6 +1550,10 @@ func (s *adminServiceImpl) CreateShadow(ctx context.Context, parentID int64, opt
 		}
 		shadow.GroupIDs = groupIDs
 	}
+
+	AfterAccountCommit(ctx, func(commitCtx context.Context) {
+		s.refreshDynamicQuotaGroups(commitCtx, groupIDs)
+	})
 
 	return shadow, nil
 }

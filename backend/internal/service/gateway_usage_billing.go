@@ -900,6 +900,9 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 		return billingErr
 	}
 	writeUsageLogBestEffort(ctx, s.usageLogRepo, usageLog, "service.gateway")
+	if account.Platform == PlatformOpenAI && apiKey.Group != nil && apiKey.Group.DynamicQuotaEnabled {
+		s.dynamicQuotaUpdater.AccountChanged(ctx, account.ID)
+	}
 
 	return nil
 }

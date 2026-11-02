@@ -130,6 +130,26 @@ func SubscriptionType(v string) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldSubscriptionType, v))
 }
 
+// DynamicQuotaEnabled applies equality check predicate on the "dynamic_quota_enabled" field. It's identical to DynamicQuotaEnabledEQ.
+func DynamicQuotaEnabled(v bool) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaEnabled, v))
+}
+
+// DynamicQuotaPositions applies equality check predicate on the "dynamic_quota_positions" field. It's identical to DynamicQuotaPositionsEQ.
+func DynamicQuotaPositions(v int64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaAbnormal applies equality check predicate on the "dynamic_quota_abnormal" field. It's identical to DynamicQuotaAbnormalEQ.
+func DynamicQuotaAbnormal(v bool) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaAbnormal, v))
+}
+
+// DynamicQuotaLimitUsd applies equality check predicate on the "dynamic_quota_limit_usd" field. It's identical to DynamicQuotaLimitUsdEQ.
+func DynamicQuotaLimitUsd(v float64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaLimitUsd, v))
+}
+
 // DailyLimitUsd applies equality check predicate on the "daily_limit_usd" field. It's identical to DailyLimitUsdEQ.
 func DailyLimitUsd(v float64) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldDailyLimitUsd, v))
@@ -1118,6 +1138,126 @@ func SubscriptionTypeEqualFold(v string) predicate.Group {
 // SubscriptionTypeContainsFold applies the ContainsFold predicate on the "subscription_type" field.
 func SubscriptionTypeContainsFold(v string) predicate.Group {
 	return predicate.Group(sql.FieldContainsFold(FieldSubscriptionType, v))
+}
+
+// DynamicQuotaEnabledEQ applies the EQ predicate on the "dynamic_quota_enabled" field.
+func DynamicQuotaEnabledEQ(v bool) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaEnabled, v))
+}
+
+// DynamicQuotaEnabledNEQ applies the NEQ predicate on the "dynamic_quota_enabled" field.
+func DynamicQuotaEnabledNEQ(v bool) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldDynamicQuotaEnabled, v))
+}
+
+// DynamicQuotaPositionsEQ applies the EQ predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsEQ(v int64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaPositionsNEQ applies the NEQ predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsNEQ(v int64) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaPositionsIn applies the In predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsIn(vs ...int64) predicate.Group {
+	return predicate.Group(sql.FieldIn(FieldDynamicQuotaPositions, vs...))
+}
+
+// DynamicQuotaPositionsNotIn applies the NotIn predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsNotIn(vs ...int64) predicate.Group {
+	return predicate.Group(sql.FieldNotIn(FieldDynamicQuotaPositions, vs...))
+}
+
+// DynamicQuotaPositionsGT applies the GT predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsGT(v int64) predicate.Group {
+	return predicate.Group(sql.FieldGT(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaPositionsGTE applies the GTE predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsGTE(v int64) predicate.Group {
+	return predicate.Group(sql.FieldGTE(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaPositionsLT applies the LT predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsLT(v int64) predicate.Group {
+	return predicate.Group(sql.FieldLT(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaPositionsLTE applies the LTE predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsLTE(v int64) predicate.Group {
+	return predicate.Group(sql.FieldLTE(FieldDynamicQuotaPositions, v))
+}
+
+// DynamicQuotaPositionsIsNil applies the IsNil predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsIsNil() predicate.Group {
+	return predicate.Group(sql.FieldIsNull(FieldDynamicQuotaPositions))
+}
+
+// DynamicQuotaPositionsNotNil applies the NotNil predicate on the "dynamic_quota_positions" field.
+func DynamicQuotaPositionsNotNil() predicate.Group {
+	return predicate.Group(sql.FieldNotNull(FieldDynamicQuotaPositions))
+}
+
+// DynamicQuotaAbnormalEQ applies the EQ predicate on the "dynamic_quota_abnormal" field.
+func DynamicQuotaAbnormalEQ(v bool) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaAbnormal, v))
+}
+
+// DynamicQuotaAbnormalNEQ applies the NEQ predicate on the "dynamic_quota_abnormal" field.
+func DynamicQuotaAbnormalNEQ(v bool) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldDynamicQuotaAbnormal, v))
+}
+
+// DynamicQuotaLimitUsdEQ applies the EQ predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdEQ(v float64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldDynamicQuotaLimitUsd, v))
+}
+
+// DynamicQuotaLimitUsdNEQ applies the NEQ predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdNEQ(v float64) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldDynamicQuotaLimitUsd, v))
+}
+
+// DynamicQuotaLimitUsdIn applies the In predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdIn(vs ...float64) predicate.Group {
+	return predicate.Group(sql.FieldIn(FieldDynamicQuotaLimitUsd, vs...))
+}
+
+// DynamicQuotaLimitUsdNotIn applies the NotIn predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdNotIn(vs ...float64) predicate.Group {
+	return predicate.Group(sql.FieldNotIn(FieldDynamicQuotaLimitUsd, vs...))
+}
+
+// DynamicQuotaLimitUsdGT applies the GT predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdGT(v float64) predicate.Group {
+	return predicate.Group(sql.FieldGT(FieldDynamicQuotaLimitUsd, v))
+}
+
+// DynamicQuotaLimitUsdGTE applies the GTE predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdGTE(v float64) predicate.Group {
+	return predicate.Group(sql.FieldGTE(FieldDynamicQuotaLimitUsd, v))
+}
+
+// DynamicQuotaLimitUsdLT applies the LT predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdLT(v float64) predicate.Group {
+	return predicate.Group(sql.FieldLT(FieldDynamicQuotaLimitUsd, v))
+}
+
+// DynamicQuotaLimitUsdLTE applies the LTE predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdLTE(v float64) predicate.Group {
+	return predicate.Group(sql.FieldLTE(FieldDynamicQuotaLimitUsd, v))
+}
+
+// DynamicQuotaLimitUsdIsNil applies the IsNil predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdIsNil() predicate.Group {
+	return predicate.Group(sql.FieldIsNull(FieldDynamicQuotaLimitUsd))
+}
+
+// DynamicQuotaLimitUsdNotNil applies the NotNil predicate on the "dynamic_quota_limit_usd" field.
+func DynamicQuotaLimitUsdNotNil() predicate.Group {
+	return predicate.Group(sql.FieldNotNull(FieldDynamicQuotaLimitUsd))
 }
 
 // DailyLimitUsdEQ applies the EQ predicate on the "daily_limit_usd" field.

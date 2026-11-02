@@ -747,6 +747,7 @@ func (s *RedeemService) reduceOrCancelSubscription(ctx context.Context, userID, 
 
 	// 失效缓存
 	s.subscriptionService.InvalidateSubCache(userID, groupID)
+	s.subscriptionService.refreshGroupDynamicQuotaAfterCommit(ctx, groupID)
 
 	return nil
 }

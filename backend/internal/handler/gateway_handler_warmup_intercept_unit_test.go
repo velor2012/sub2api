@@ -100,6 +100,12 @@ func (f *fakeGroupRepo) ListActiveByPlatform(context.Context, string) ([]service
 	return nil, nil
 }
 func (f *fakeGroupRepo) ExistsByName(context.Context, string) (bool, error) { return false, nil }
+func (*fakeGroupRepo) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*fakeGroupRepo) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (f *fakeGroupRepo) GetAccountCount(context.Context, int64) (int64, int64, error) {
 	return 0, 0, nil
 }

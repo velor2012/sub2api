@@ -786,6 +786,7 @@ type GatewayService struct {
 	billingService        *BillingService
 	rateLimitService      *RateLimitService
 	billingCacheService   *BillingCacheService
+	dynamicQuotaUpdater   *GroupDynamicQuotaUpdater
 	identityService       *IdentityService
 	httpUpstream          HTTPUpstream
 	deferredService       *DeferredService

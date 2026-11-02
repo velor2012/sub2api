@@ -107,6 +107,10 @@ type Group struct {
 	DailyLimitUSD             *float64 `json:"daily_limit_usd"`
 	WeeklyLimitUSD            *float64 `json:"weekly_limit_usd"`
 	MonthlyLimitUSD           *float64 `json:"monthly_limit_usd"`
+	DynamicQuotaEnabled       bool     `json:"dynamic_quota_enabled"`
+	DynamicQuotaPositions     *int64   `json:"dynamic_quota_positions"`
+	DynamicQuotaAbnormal      bool     `json:"dynamic_quota_abnormal"`
+	DynamicQuotaLimitUSD      *float64 `json:"dynamic_quota_limit_usd"`
 	LongContextPricingEnabled bool     `json:"long_context_pricing_enabled"`
 
 	// 图片生成计费配置（仅 antigravity 平台使用）
@@ -776,8 +780,19 @@ type UserSubscription struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	RevokedAt *time.Time `json:"revoked_at,omitempty"`
 
-	User  *User  `json:"user,omitempty"`
-	Group *Group `json:"group,omitempty"`
+	User        *User                    `json:"user,omitempty"`
+	Group       *Group                   `json:"group,omitempty"`
+	QuotaLimits *SubscriptionQuotaLimits `json:"quota_limits,omitempty"`
+}
+
+type SubscriptionQuotaLimits struct {
+	DynamicEnabled          bool     `json:"dynamic_enabled"`
+	Abnormal                bool     `json:"abnormal"`
+	Positions               *int64   `json:"positions"`
+	DynamicDailyLimitUSD    float64  `json:"dynamic_daily_limit_usd"`
+	DynamicWeeklyLimitUSD   float64  `json:"dynamic_weekly_limit_usd"`
+	EffectiveDailyLimitUSD  *float64 `json:"effective_daily_limit_usd"`
+	EffectiveWeeklyLimitUSD *float64 `json:"effective_weekly_limit_usd"`
 }
 
 // AdminUserSubscription 是管理员接口使用的订阅 DTO（包含分配信息/备注等字段）。

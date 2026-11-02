@@ -48,6 +48,7 @@ type SubscriptionService struct {
 	userSubRepo         UserSubscriptionRepository
 	billingCacheService *BillingCacheService
 	entClient           *dbent.Client
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater
 
 	// L1 缓存：加速中间件热路径的订阅查询
 	subCacheL1     *ristretto.Cache
@@ -93,6 +94,30 @@ func (s *SubscriptionService) Stop() {
 	if s.maintenanceQueue != nil {
 		s.maintenanceQueue.Stop()
 	}
+}
+
+// SetDynamicQuotaUpdater injects the group dynamic quota updater invoked after
+// subscription writes commit. When absent, dynamic quota refresh relies on the
+// periodic expiry reconcile.
+func (s *SubscriptionService) SetDynamicQuotaUpdater(updater *GroupDynamicQuotaUpdater) {
+	if s == nil {
+		return
+	}
+	s.dynamicQuotaUpdater = updater
+}
+
+// refreshGroupDynamicQuotaAfterCommit recomputes a group's dynamic quota state
+// after the outermost transaction commits (payment fulfillment and bulk actions
+// run inside an outer tx; refreshing earlier would read pre-commit rows).
+func (s *SubscriptionService) refreshGroupDynamicQuotaAfterCommit(ctx context.Context, groupID int64) {
+	if s == nil || s.dynamicQuotaUpdater == nil {
+		return
+	}
+	AfterAccountCommit(ctx, func(commitCtx context.Context) {
+		if err := s.dynamicQuotaUpdater.RefreshGroup(commitCtx, groupID); err != nil {
+			log.Printf("[SubscriptionService] Refresh dynamic quota for group %d failed: %v", groupID, err)
+		}
+	})
 }
 
 // initSubCache 初始化订阅 L1 缓存
@@ -254,6 +279,7 @@ func (s *SubscriptionService) assignOrExtendSubscription(ctx context.Context, in
 
 		// 返回更新后的订阅
 		sub, err := s.userSubRepo.GetByID(ctx, existingSub.ID)
+		s.refreshGroupDynamicQuotaAfterCommit(ctx, input.GroupID)
 		return sub, true, err // true 表示是续期
 	}
 
@@ -265,6 +291,7 @@ func (s *SubscriptionService) assignOrExtendSubscription(ctx context.Context, in
 
 	// 失效订阅缓存
 	s.maybeInvalidateAssignmentCaches(input.UserID, input.GroupID, deferCacheInvalidation)
+	s.refreshGroupDynamicQuotaAfterCommit(ctx, input.GroupID)
 
 	return sub, false, nil // false 表示是新建
 }
@@ -531,6 +558,7 @@ func (s *SubscriptionService) assignSubscriptionWithReuse(ctx context.Context, i
 				return nil, false, err
 			}
 			s.maybeInvalidateAssignmentCaches(input.UserID, input.GroupID, false)
+			s.refreshGroupDynamicQuotaAfterCommit(ctx, input.GroupID)
 			renewed, getErr := s.userSubRepo.GetByID(ctx, sub.ID)
 			return renewed, true, getErr
 		}
@@ -549,6 +577,7 @@ func (s *SubscriptionService) assignSubscriptionWithReuse(ctx context.Context, i
 
 	// 失效订阅缓存
 	s.InvalidateSubCache(input.UserID, input.GroupID)
+	s.refreshGroupDynamicQuotaAfterCommit(ctx, input.GroupID)
 	if s.billingCacheService != nil {
 		userID, groupID := input.UserID, input.GroupID
 		go func() {
@@ -611,6 +640,7 @@ func (s *SubscriptionService) RevokeSubscription(ctx context.Context, subscripti
 	if err := s.invalidateSubscriptionCaches(sub.UserID, sub.GroupID); err != nil {
 		return err
 	}
+	s.refreshGroupDynamicQuotaAfterCommit(ctx, sub.GroupID)
 
 	return nil
 }
@@ -647,6 +677,7 @@ func (s *SubscriptionService) RestoreSubscription(ctx context.Context, subscript
 	if err := s.invalidateSubscriptionCaches(restored.UserID, restored.GroupID); err != nil {
 		return nil, err
 	}
+	s.refreshGroupDynamicQuotaAfterCommit(ctx, restored.GroupID)
 	return restored, nil
 }
 
@@ -722,6 +753,7 @@ func (s *SubscriptionService) ExtendSubscription(ctx context.Context, subscripti
 
 	// 失效订阅缓存
 	s.InvalidateSubCache(sub.UserID, sub.GroupID)
+	s.refreshGroupDynamicQuotaAfterCommit(ctx, sub.GroupID)
 	if s.billingCacheService != nil {
 		userID, groupID := sub.UserID, sub.GroupID
 		go func() {
@@ -736,7 +768,11 @@ func (s *SubscriptionService) ExtendSubscription(ctx context.Context, subscripti
 
 // GetByID 根据ID获取订阅
 func (s *SubscriptionService) GetByID(ctx context.Context, id int64) (*UserSubscription, error) {
-	return s.userSubRepo.GetByID(ctx, id)
+	sub, err := s.userSubRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return sub, nil
 }
 
 // GetActiveSubscription 获取用户对特定分组的有效订阅
@@ -1145,7 +1181,7 @@ func (s *SubscriptionService) calculateProgress(sub *UserSubscription, group *Gr
 
 	// 日进度
 	if group.HasDailyLimit() && sub.DailyWindowStart != nil {
-		limit := *group.DailyLimitUSD
+		limit := *group.EffectiveDailyLimitUSD()
 		resetsAt := sub.DailyWindowStart.Add(24 * time.Hour)
 		if dailyResetTime := sub.DailyResetTime(); dailyResetTime != nil {
 			resetsAt = *dailyResetTime
@@ -1172,7 +1208,7 @@ func (s *SubscriptionService) calculateProgress(sub *UserSubscription, group *Gr
 
 	// 周进度
 	if group.HasWeeklyLimit() && sub.WeeklyWindowStart != nil {
-		limit := *group.WeeklyLimitUSD
+		limit := *group.EffectiveWeeklyLimitUSD()
 		resetsAt := sub.WeeklyWindowStart.Add(7 * 24 * time.Hour)
 		if weeklyResetTime := sub.WeeklyResetTime(); weeklyResetTime != nil {
 			resetsAt = *weeklyResetTime

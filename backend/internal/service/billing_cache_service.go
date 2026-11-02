@@ -848,10 +848,10 @@ func (s *BillingCacheService) checkFixedChargeSubscription(ctx context.Context, 
 	if err != nil {
 		return ErrBillingServiceUnavailable.WithCause(err)
 	}
-	if group.HasDailyLimit() && subData.DailyUsage+pending > *group.DailyLimitUSD {
+	if group.HasDailyLimit() && subData.DailyUsage+pending > *group.EffectiveDailyLimitUSD() {
 		return ErrDailyLimitExceeded
 	}
-	if group.HasWeeklyLimit() && subData.WeeklyUsage+pending > *group.WeeklyLimitUSD {
+	if group.HasWeeklyLimit() && subData.WeeklyUsage+pending > *group.EffectiveWeeklyLimitUSD() {
 		return ErrWeeklyLimitExceeded
 	}
 	if group.HasMonthlyLimit() && subData.MonthlyUsage+pending > *group.MonthlyLimitUSD {
@@ -1068,11 +1068,11 @@ func (s *BillingCacheService) checkSubscriptionEligibility(ctx context.Context, 
 	}
 
 	// 检查限额（使用传入的Group限额配置）
-	if group.HasDailyLimit() && subData.DailyUsage >= *group.DailyLimitUSD {
+	if group.HasDailyLimit() && subData.DailyUsage >= *group.EffectiveDailyLimitUSD() {
 		return ErrDailyLimitExceeded
 	}
 
-	if group.HasWeeklyLimit() && subData.WeeklyUsage >= *group.WeeklyLimitUSD {
+	if group.HasWeeklyLimit() && subData.WeeklyUsage >= *group.EffectiveWeeklyLimitUSD() {
 		return ErrWeeklyLimitExceeded
 	}
 

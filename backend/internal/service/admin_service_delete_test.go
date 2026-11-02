@@ -300,6 +300,12 @@ func (s *groupRepoStub) ExistsByName(ctx context.Context, name string) (bool, er
 	panic("unexpected ExistsByName call")
 }
 
+func (*groupRepoStub) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*groupRepoStub) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (s *groupRepoStub) GetAccountCount(ctx context.Context, groupID int64) (int64, int64, error) {
 	panic("unexpected GetAccountCount call")
 }

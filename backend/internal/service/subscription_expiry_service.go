@@ -30,6 +30,7 @@ type SubscriptionExpiryService struct {
 	userSubRepo              UserSubscriptionRepository
 	settingRepo              SettingRepository
 	notificationEmailService *NotificationEmailService
+	dynamicQuotaUpdater      *GroupDynamicQuotaUpdater
 	interval                 time.Duration
 	stopCh                   chan struct{}
 	stopOnce                 sync.Once
@@ -71,6 +72,15 @@ func (s *SubscriptionExpiryService) SetNotificationEmailService(notificationEmai
 	s.notificationEmailService = notificationEmailService
 }
 
+// SetDynamicQuotaUpdater injects the group dynamic quota updater used to
+// refresh groups affected by natural expiry.
+func (s *SubscriptionExpiryService) SetDynamicQuotaUpdater(updater *GroupDynamicQuotaUpdater) {
+	if s == nil {
+		return
+	}
+	s.dynamicQuotaUpdater = updater
+}
+
 func (s *SubscriptionExpiryService) Start() {
 	if s == nil || s.userSubRepo == nil || s.interval <= 0 {
 		return
@@ -107,15 +117,61 @@ func (s *SubscriptionExpiryService) runOnce() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	updated, err := s.userSubRepo.BatchUpdateExpiredStatus(ctx)
+	groupIDs, err := s.userSubRepo.BatchUpdateExpiredStatus(ctx)
 	if err != nil {
 		log.Printf("[SubscriptionExpiry] Update expired subscriptions failed: %v", err)
 		return
 	}
-	if updated > 0 {
-		log.Printf("[SubscriptionExpiry] Updated %d expired subscriptions", updated)
+	if len(groupIDs) > 0 {
+		log.Printf("[SubscriptionExpiry] Updated expired subscriptions in %d group(s)", len(groupIDs))
 	}
+	s.refreshDynamicQuotaGroups(ctx, groupIDs)
 	s.sendExpiryReminders(ctx)
+}
+
+// refreshDynamicQuotaGroups refreshes groups hit by natural expiry and, in the
+// same tick, reconciles dynamic groups whose persisted positions drifted from
+// the live active-subscription count (e.g. a missed refresh trigger).
+func (s *SubscriptionExpiryService) refreshDynamicQuotaGroups(ctx context.Context, expiredGroupIDs []int64) {
+	if s == nil || s.dynamicQuotaUpdater == nil {
+		return
+	}
+	seen := make(map[int64]struct{}, len(expiredGroupIDs))
+	for _, groupID := range expiredGroupIDs {
+		seen[groupID] = struct{}{}
+		s.refreshDynamicQuotaGroup(ctx, groupID)
+	}
+	subs, _, err := s.userSubRepo.List(ctx, pagination.PaginationParams{Page: 1, PageSize: 1000}, nil, nil, SubscriptionStatusActive, "", "id", "asc")
+	if err != nil {
+		log.Printf("[SubscriptionExpiry] List active subscriptions for quota reconcile failed: %v", err)
+		return
+	}
+	counts := make(map[int64]int64)
+	persisted := make(map[int64]int64)
+	for i := range subs {
+		sub := &subs[i]
+		if sub.Group == nil || !sub.Group.DynamicQuotaEnabled {
+			continue
+		}
+		if _, ok := counts[sub.GroupID]; !ok && sub.Group.DynamicQuotaPositions != nil {
+			persisted[sub.GroupID] = *sub.Group.DynamicQuotaPositions
+		}
+		counts[sub.GroupID]++
+	}
+	for groupID, live := range counts {
+		if _, ok := seen[groupID]; ok {
+			continue
+		}
+		if persisted[groupID] != live {
+			s.refreshDynamicQuotaGroup(ctx, groupID)
+		}
+	}
+}
+
+func (s *SubscriptionExpiryService) refreshDynamicQuotaGroup(ctx context.Context, groupID int64) {
+	if err := s.dynamicQuotaUpdater.RefreshGroup(ctx, groupID); err != nil {
+		log.Printf("[SubscriptionExpiry] Refresh dynamic quota for group %d failed: %v", groupID, err)
+	}
 }
 
 func (s *SubscriptionExpiryService) sendExpiryReminders(ctx context.Context) {

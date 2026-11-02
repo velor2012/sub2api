@@ -79,6 +79,12 @@ func (groupRepoNoop) ListActiveByPlatform(context.Context, string) ([]Group, err
 func (groupRepoNoop) ExistsByName(context.Context, string) (bool, error) {
 	panic("unexpected ExistsByName call")
 }
+func (groupRepoNoop) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (groupRepoNoop) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (groupRepoNoop) GetAccountCount(context.Context, int64) (int64, int64, error) {
 	panic("unexpected GetAccountCount call")
 }
@@ -176,8 +182,11 @@ func (userSubRepoNoop) ResetMonthlyUsage(context.Context, int64, *time.Time, tim
 func (userSubRepoNoop) IncrementUsage(context.Context, int64, float64) error {
 	panic("unexpected IncrementUsage call")
 }
-func (userSubRepoNoop) BatchUpdateExpiredStatus(context.Context) (int64, error) {
+func (userSubRepoNoop) BatchUpdateExpiredStatus(context.Context) ([]int64, error) {
 	panic("unexpected BatchUpdateExpiredStatus call")
+}
+func (userSubRepoNoop) CountActiveByGroupID(context.Context, int64) (int64, error) {
+	panic("unexpected CountActiveByGroupID call")
 }
 
 type subscriptionUserSubRepoStub struct {

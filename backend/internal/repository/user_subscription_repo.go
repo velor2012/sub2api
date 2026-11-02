@@ -502,16 +502,36 @@ func (r *userSubscriptionRepository) IncrementUsage(ctx context.Context, id int6
 	return service.ErrSubscriptionNotFound
 }
 
-func (r *userSubscriptionRepository) BatchUpdateExpiredStatus(ctx context.Context) (int64, error) {
+// BatchUpdateExpiredStatus 将所有已到期的 active 订阅置为 expired，
+// 并返回受影响订阅的去重 group_id（供动态额度刷新使用）。
+func (r *userSubscriptionRepository) BatchUpdateExpiredStatus(ctx context.Context) ([]int64, error) {
+	const updateSQL = `
+		UPDATE user_subscriptions
+		SET status = $1, updated_at = NOW()
+		WHERE status = 'active' AND expires_at <= NOW() AND deleted_at IS NULL
+		RETURNING group_id
+	`
+
 	client := clientFromContext(ctx, r.client)
-	n, err := client.UserSubscription.Update().
-		Where(
-			usersubscription.StatusEQ(service.SubscriptionStatusActive),
-			usersubscription.ExpiresAtLTE(time.Now()),
-		).
-		SetStatus(service.SubscriptionStatusExpired).
-		Save(ctx)
-	return int64(n), err
+	rows, err := client.QueryContext(ctx, updateSQL, service.SubscriptionStatusExpired)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	seen := make(map[int64]struct{})
+	var groupIDs []int64
+	for rows.Next() {
+		var groupID int64
+		if err := rows.Scan(&groupID); err != nil {
+			return nil, err
+		}
+		if _, ok := seen[groupID]; !ok {
+			seen[groupID] = struct{}{}
+			groupIDs = append(groupIDs, groupID)
+		}
+	}
+	return groupIDs, rows.Err()
 }
 
 // Extra repository helpers (currently used only by integration tests).

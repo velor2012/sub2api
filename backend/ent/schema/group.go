@@ -87,6 +87,10 @@ func (Group) Fields() []ent.Field {
 		field.String("subscription_type").
 			MaxLen(20).
 			Default(domain.SubscriptionTypeStandard),
+		field.Bool("dynamic_quota_enabled").Default(false),
+		field.Int64("dynamic_quota_positions").Optional().Nillable(),
+		field.Bool("dynamic_quota_abnormal").Default(false),
+		field.Float("dynamic_quota_limit_usd").Optional().Nillable(),
 		field.Float("daily_limit_usd").
 			Optional().
 			Nillable().

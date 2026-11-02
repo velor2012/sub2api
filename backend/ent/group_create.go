@@ -238,6 +238,62 @@ func (_c *GroupCreate) SetNillableSubscriptionType(v *string) *GroupCreate {
 	return _c
 }
 
+// SetDynamicQuotaEnabled sets the "dynamic_quota_enabled" field.
+func (_c *GroupCreate) SetDynamicQuotaEnabled(v bool) *GroupCreate {
+	_c.mutation.SetDynamicQuotaEnabled(v)
+	return _c
+}
+
+// SetNillableDynamicQuotaEnabled sets the "dynamic_quota_enabled" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDynamicQuotaEnabled(v *bool) *GroupCreate {
+	if v != nil {
+		_c.SetDynamicQuotaEnabled(*v)
+	}
+	return _c
+}
+
+// SetDynamicQuotaPositions sets the "dynamic_quota_positions" field.
+func (_c *GroupCreate) SetDynamicQuotaPositions(v int64) *GroupCreate {
+	_c.mutation.SetDynamicQuotaPositions(v)
+	return _c
+}
+
+// SetNillableDynamicQuotaPositions sets the "dynamic_quota_positions" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDynamicQuotaPositions(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetDynamicQuotaPositions(*v)
+	}
+	return _c
+}
+
+// SetDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field.
+func (_c *GroupCreate) SetDynamicQuotaAbnormal(v bool) *GroupCreate {
+	_c.mutation.SetDynamicQuotaAbnormal(v)
+	return _c
+}
+
+// SetNillableDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDynamicQuotaAbnormal(v *bool) *GroupCreate {
+	if v != nil {
+		_c.SetDynamicQuotaAbnormal(*v)
+	}
+	return _c
+}
+
+// SetDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field.
+func (_c *GroupCreate) SetDynamicQuotaLimitUsd(v float64) *GroupCreate {
+	_c.mutation.SetDynamicQuotaLimitUsd(v)
+	return _c
+}
+
+// SetNillableDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDynamicQuotaLimitUsd(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetDynamicQuotaLimitUsd(*v)
+	}
+	return _c
+}
+
 // SetDailyLimitUsd sets the "daily_limit_usd" field.
 func (_c *GroupCreate) SetDailyLimitUsd(v float64) *GroupCreate {
 	_c.mutation.SetDailyLimitUsd(v)
@@ -1107,6 +1163,14 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultSubscriptionType
 		_c.mutation.SetSubscriptionType(v)
 	}
+	if _, ok := _c.mutation.DynamicQuotaEnabled(); !ok {
+		v := group.DefaultDynamicQuotaEnabled
+		_c.mutation.SetDynamicQuotaEnabled(v)
+	}
+	if _, ok := _c.mutation.DynamicQuotaAbnormal(); !ok {
+		v := group.DefaultDynamicQuotaAbnormal
+		_c.mutation.SetDynamicQuotaAbnormal(v)
+	}
 	if _, ok := _c.mutation.DefaultValidityDays(); !ok {
 		v := group.DefaultDefaultValidityDays
 		_c.mutation.SetDefaultValidityDays(v)
@@ -1317,6 +1381,12 @@ func (_c *GroupCreate) check() error {
 		if err := group.SubscriptionTypeValidator(v); err != nil {
 			return &ValidationError{Name: "subscription_type", err: fmt.Errorf(`ent: validator failed for field "Group.subscription_type": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.DynamicQuotaEnabled(); !ok {
+		return &ValidationError{Name: "dynamic_quota_enabled", err: errors.New(`ent: missing required field "Group.dynamic_quota_enabled"`)}
+	}
+	if _, ok := _c.mutation.DynamicQuotaAbnormal(); !ok {
+		return &ValidationError{Name: "dynamic_quota_abnormal", err: errors.New(`ent: missing required field "Group.dynamic_quota_abnormal"`)}
 	}
 	if _, ok := _c.mutation.DefaultValidityDays(); !ok {
 		return &ValidationError{Name: "default_validity_days", err: errors.New(`ent: missing required field "Group.default_validity_days"`)}
@@ -1542,6 +1612,22 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SubscriptionType(); ok {
 		_spec.SetField(group.FieldSubscriptionType, field.TypeString, value)
 		_node.SubscriptionType = value
+	}
+	if value, ok := _c.mutation.DynamicQuotaEnabled(); ok {
+		_spec.SetField(group.FieldDynamicQuotaEnabled, field.TypeBool, value)
+		_node.DynamicQuotaEnabled = value
+	}
+	if value, ok := _c.mutation.DynamicQuotaPositions(); ok {
+		_spec.SetField(group.FieldDynamicQuotaPositions, field.TypeInt64, value)
+		_node.DynamicQuotaPositions = &value
+	}
+	if value, ok := _c.mutation.DynamicQuotaAbnormal(); ok {
+		_spec.SetField(group.FieldDynamicQuotaAbnormal, field.TypeBool, value)
+		_node.DynamicQuotaAbnormal = value
+	}
+	if value, ok := _c.mutation.DynamicQuotaLimitUsd(); ok {
+		_spec.SetField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64, value)
+		_node.DynamicQuotaLimitUsd = &value
 	}
 	if value, ok := _c.mutation.DailyLimitUsd(); ok {
 		_spec.SetField(group.FieldDailyLimitUsd, field.TypeFloat64, value)
@@ -2096,6 +2182,78 @@ func (u *GroupUpsert) SetSubscriptionType(v string) *GroupUpsert {
 // UpdateSubscriptionType sets the "subscription_type" field to the value that was provided on create.
 func (u *GroupUpsert) UpdateSubscriptionType() *GroupUpsert {
 	u.SetExcluded(group.FieldSubscriptionType)
+	return u
+}
+
+// SetDynamicQuotaEnabled sets the "dynamic_quota_enabled" field.
+func (u *GroupUpsert) SetDynamicQuotaEnabled(v bool) *GroupUpsert {
+	u.Set(group.FieldDynamicQuotaEnabled, v)
+	return u
+}
+
+// UpdateDynamicQuotaEnabled sets the "dynamic_quota_enabled" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDynamicQuotaEnabled() *GroupUpsert {
+	u.SetExcluded(group.FieldDynamicQuotaEnabled)
+	return u
+}
+
+// SetDynamicQuotaPositions sets the "dynamic_quota_positions" field.
+func (u *GroupUpsert) SetDynamicQuotaPositions(v int64) *GroupUpsert {
+	u.Set(group.FieldDynamicQuotaPositions, v)
+	return u
+}
+
+// UpdateDynamicQuotaPositions sets the "dynamic_quota_positions" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDynamicQuotaPositions() *GroupUpsert {
+	u.SetExcluded(group.FieldDynamicQuotaPositions)
+	return u
+}
+
+// AddDynamicQuotaPositions adds v to the "dynamic_quota_positions" field.
+func (u *GroupUpsert) AddDynamicQuotaPositions(v int64) *GroupUpsert {
+	u.Add(group.FieldDynamicQuotaPositions, v)
+	return u
+}
+
+// ClearDynamicQuotaPositions clears the value of the "dynamic_quota_positions" field.
+func (u *GroupUpsert) ClearDynamicQuotaPositions() *GroupUpsert {
+	u.SetNull(group.FieldDynamicQuotaPositions)
+	return u
+}
+
+// SetDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field.
+func (u *GroupUpsert) SetDynamicQuotaAbnormal(v bool) *GroupUpsert {
+	u.Set(group.FieldDynamicQuotaAbnormal, v)
+	return u
+}
+
+// UpdateDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDynamicQuotaAbnormal() *GroupUpsert {
+	u.SetExcluded(group.FieldDynamicQuotaAbnormal)
+	return u
+}
+
+// SetDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsert) SetDynamicQuotaLimitUsd(v float64) *GroupUpsert {
+	u.Set(group.FieldDynamicQuotaLimitUsd, v)
+	return u
+}
+
+// UpdateDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDynamicQuotaLimitUsd() *GroupUpsert {
+	u.SetExcluded(group.FieldDynamicQuotaLimitUsd)
+	return u
+}
+
+// AddDynamicQuotaLimitUsd adds v to the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsert) AddDynamicQuotaLimitUsd(v float64) *GroupUpsert {
+	u.Add(group.FieldDynamicQuotaLimitUsd, v)
+	return u
+}
+
+// ClearDynamicQuotaLimitUsd clears the value of the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsert) ClearDynamicQuotaLimitUsd() *GroupUpsert {
+	u.SetNull(group.FieldDynamicQuotaLimitUsd)
 	return u
 }
 
@@ -3256,6 +3414,90 @@ func (u *GroupUpsertOne) SetSubscriptionType(v string) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateSubscriptionType() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateSubscriptionType()
+	})
+}
+
+// SetDynamicQuotaEnabled sets the "dynamic_quota_enabled" field.
+func (u *GroupUpsertOne) SetDynamicQuotaEnabled(v bool) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaEnabled(v)
+	})
+}
+
+// UpdateDynamicQuotaEnabled sets the "dynamic_quota_enabled" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDynamicQuotaEnabled() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaEnabled()
+	})
+}
+
+// SetDynamicQuotaPositions sets the "dynamic_quota_positions" field.
+func (u *GroupUpsertOne) SetDynamicQuotaPositions(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaPositions(v)
+	})
+}
+
+// AddDynamicQuotaPositions adds v to the "dynamic_quota_positions" field.
+func (u *GroupUpsertOne) AddDynamicQuotaPositions(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDynamicQuotaPositions(v)
+	})
+}
+
+// UpdateDynamicQuotaPositions sets the "dynamic_quota_positions" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDynamicQuotaPositions() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaPositions()
+	})
+}
+
+// ClearDynamicQuotaPositions clears the value of the "dynamic_quota_positions" field.
+func (u *GroupUpsertOne) ClearDynamicQuotaPositions() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDynamicQuotaPositions()
+	})
+}
+
+// SetDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field.
+func (u *GroupUpsertOne) SetDynamicQuotaAbnormal(v bool) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaAbnormal(v)
+	})
+}
+
+// UpdateDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDynamicQuotaAbnormal() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaAbnormal()
+	})
+}
+
+// SetDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsertOne) SetDynamicQuotaLimitUsd(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaLimitUsd(v)
+	})
+}
+
+// AddDynamicQuotaLimitUsd adds v to the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsertOne) AddDynamicQuotaLimitUsd(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDynamicQuotaLimitUsd(v)
+	})
+}
+
+// UpdateDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDynamicQuotaLimitUsd() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaLimitUsd()
+	})
+}
+
+// ClearDynamicQuotaLimitUsd clears the value of the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsertOne) ClearDynamicQuotaLimitUsd() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDynamicQuotaLimitUsd()
 	})
 }
 
@@ -4730,6 +4972,90 @@ func (u *GroupUpsertBulk) SetSubscriptionType(v string) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateSubscriptionType() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateSubscriptionType()
+	})
+}
+
+// SetDynamicQuotaEnabled sets the "dynamic_quota_enabled" field.
+func (u *GroupUpsertBulk) SetDynamicQuotaEnabled(v bool) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaEnabled(v)
+	})
+}
+
+// UpdateDynamicQuotaEnabled sets the "dynamic_quota_enabled" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDynamicQuotaEnabled() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaEnabled()
+	})
+}
+
+// SetDynamicQuotaPositions sets the "dynamic_quota_positions" field.
+func (u *GroupUpsertBulk) SetDynamicQuotaPositions(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaPositions(v)
+	})
+}
+
+// AddDynamicQuotaPositions adds v to the "dynamic_quota_positions" field.
+func (u *GroupUpsertBulk) AddDynamicQuotaPositions(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDynamicQuotaPositions(v)
+	})
+}
+
+// UpdateDynamicQuotaPositions sets the "dynamic_quota_positions" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDynamicQuotaPositions() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaPositions()
+	})
+}
+
+// ClearDynamicQuotaPositions clears the value of the "dynamic_quota_positions" field.
+func (u *GroupUpsertBulk) ClearDynamicQuotaPositions() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDynamicQuotaPositions()
+	})
+}
+
+// SetDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field.
+func (u *GroupUpsertBulk) SetDynamicQuotaAbnormal(v bool) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaAbnormal(v)
+	})
+}
+
+// UpdateDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDynamicQuotaAbnormal() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaAbnormal()
+	})
+}
+
+// SetDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsertBulk) SetDynamicQuotaLimitUsd(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDynamicQuotaLimitUsd(v)
+	})
+}
+
+// AddDynamicQuotaLimitUsd adds v to the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsertBulk) AddDynamicQuotaLimitUsd(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDynamicQuotaLimitUsd(v)
+	})
+}
+
+// UpdateDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDynamicQuotaLimitUsd() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDynamicQuotaLimitUsd()
+	})
+}
+
+// ClearDynamicQuotaLimitUsd clears the value of the "dynamic_quota_limit_usd" field.
+func (u *GroupUpsertBulk) ClearDynamicQuotaLimitUsd() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDynamicQuotaLimitUsd()
 	})
 }
 

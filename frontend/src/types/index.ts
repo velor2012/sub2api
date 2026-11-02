@@ -592,6 +592,11 @@ export interface Group {
   daily_limit_usd: number | null
   weekly_limit_usd: number | null
   monthly_limit_usd: number | null
+  dynamic_quota_enabled?: boolean
+  dynamic_quota_limit_usd?: number | null
+  // 动态额度 v2：位置数与异常状态由后端按订阅数自动计算，前端只读展示。
+  dynamic_quota_positions?: number | null
+  dynamic_quota_abnormal?: boolean
   long_context_pricing_enabled: boolean
   // 图片生成计费配置
   allow_image_generation: boolean
@@ -665,6 +670,9 @@ export interface AdminGroup extends Group {
   account_count?: number
   active_account_count?: number
   rate_limited_account_count?: number
+  // 动态额度 v2 只读展示：异常时组内回退固定限额
+  dynamic_quota_positions?: number | null
+  dynamic_quota_abnormal?: boolean
 
   // OpenAI Messages 调度配置（仅 openai 平台使用）
   default_mapped_model?: string
@@ -816,6 +824,7 @@ export interface CreateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
+  dynamic_quota_enabled?: boolean
   long_context_pricing_enabled?: boolean
   force_openai_fast?: boolean
   free_openai_fast?: boolean
@@ -884,6 +893,7 @@ export interface UpdateGroupRequest {
   daily_limit_usd?: number | null
   weekly_limit_usd?: number | null
   monthly_limit_usd?: number | null
+  dynamic_quota_enabled?: boolean
   long_context_pricing_enabled?: boolean
   force_openai_fast?: boolean
   free_openai_fast?: boolean
@@ -1437,6 +1447,7 @@ export interface UsageProgress {
   resets_at: string | null
   remaining_seconds: number
   window_stats?: WindowStats | null // 窗口期统计（从窗口开始到当前的使用量）
+  estimated_total_cost?: number | null
   used_requests?: number
   limit_requests?: number
 }
@@ -2180,6 +2191,15 @@ export interface UserSubscription {
   expires_at: string | null
   user?: User
   group?: Group
+  quota_limits?: {
+    dynamic_enabled: boolean
+    positions: number
+    abnormal: boolean
+    dynamic_daily_limit_usd: number
+    dynamic_weekly_limit_usd: number
+    effective_daily_limit_usd: number | null
+    effective_weekly_limit_usd: number | null
+  } | null
 }
 
 export interface SubscriptionProgress {

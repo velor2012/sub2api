@@ -258,6 +258,12 @@ func (s *groupRepoStubForGroupUpdate) ListActiveByPlatform(context.Context, stri
 func (s *groupRepoStubForGroupUpdate) ExistsByName(context.Context, string) (bool, error) {
 	panic("unexpected")
 }
+func (*groupRepoStubForGroupUpdate) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*groupRepoStubForGroupUpdate) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (s *groupRepoStubForGroupUpdate) GetAccountCount(context.Context, int64) (int64, int64, error) {
 	panic("unexpected")
 }

@@ -52,6 +52,14 @@ type Group struct {
 	Platform string `json:"platform,omitempty"`
 	// SubscriptionType holds the value of the "subscription_type" field.
 	SubscriptionType string `json:"subscription_type,omitempty"`
+	// DynamicQuotaEnabled holds the value of the "dynamic_quota_enabled" field.
+	DynamicQuotaEnabled bool `json:"dynamic_quota_enabled,omitempty"`
+	// DynamicQuotaPositions holds the value of the "dynamic_quota_positions" field.
+	DynamicQuotaPositions *int64 `json:"dynamic_quota_positions,omitempty"`
+	// DynamicQuotaAbnormal holds the value of the "dynamic_quota_abnormal" field.
+	DynamicQuotaAbnormal bool `json:"dynamic_quota_abnormal,omitempty"`
+	// DynamicQuotaLimitUsd holds the value of the "dynamic_quota_limit_usd" field.
+	DynamicQuotaLimitUsd *float64 `json:"dynamic_quota_limit_usd,omitempty"`
 	// DailyLimitUsd holds the value of the "daily_limit_usd" field.
 	DailyLimitUsd *float64 `json:"daily_limit_usd,omitempty"`
 	// WeeklyLimitUsd holds the value of the "weekly_limit_usd" field.
@@ -264,11 +272,11 @@ func (*Group) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case group.FieldI18n, group.FieldVideoModelPrices, group.FieldModelPricing, group.FieldModelRouting, group.FieldSupportedModelScopes, group.FieldMessagesDispatchModelConfig, group.FieldModelAllowlist, group.FieldCodexModelsManifestConfig, group.FieldReasoningEffortMappings:
 			values[i] = new([]byte)
-		case group.FieldPeakRateEnabled, group.FieldIsExclusive, group.FieldAllowImageGeneration, group.FieldAllowBatchImageGeneration, group.FieldImageCountBilling, group.FieldImageRateIndependent, group.FieldVideoRateIndependent, group.FieldLongContextPricingEnabled, group.FieldClaudeCodeOnly, group.FieldModelRoutingEnabled, group.FieldMcpXMLInject, group.FieldAllowMessagesDispatch, group.FieldAllowLive, group.FieldForceOpenaiFast, group.FieldFreeOpenaiFast, group.FieldRequireOauthOnly, group.FieldRequirePrivacySet, group.FieldProfitControlEnabled:
+		case group.FieldPeakRateEnabled, group.FieldIsExclusive, group.FieldDynamicQuotaEnabled, group.FieldDynamicQuotaAbnormal, group.FieldAllowImageGeneration, group.FieldAllowBatchImageGeneration, group.FieldImageCountBilling, group.FieldImageRateIndependent, group.FieldVideoRateIndependent, group.FieldLongContextPricingEnabled, group.FieldClaudeCodeOnly, group.FieldModelRoutingEnabled, group.FieldMcpXMLInject, group.FieldAllowMessagesDispatch, group.FieldAllowLive, group.FieldForceOpenaiFast, group.FieldFreeOpenaiFast, group.FieldRequireOauthOnly, group.FieldRequirePrivacySet, group.FieldProfitControlEnabled:
 			values[i] = new(sql.NullBool)
-		case group.FieldRateMultiplier, group.FieldPeakRateMultiplier, group.FieldDailyLimitUsd, group.FieldWeeklyLimitUsd, group.FieldMonthlyLimitUsd, group.FieldImageRateMultiplier, group.FieldImagePrice1k, group.FieldImagePrice2k, group.FieldImagePrice4k, group.FieldBatchImageDiscountMultiplier, group.FieldBatchImageHoldMultiplier, group.FieldVideoRateMultiplier, group.FieldVideoPrice480p, group.FieldVideoPrice720p, group.FieldVideoPrice1080p, group.FieldWebSearchPricePerCall, group.FieldSearchPricePer1k, group.FieldAudioRealtimePricePerMin, group.FieldAudioTtsPricePerMillionChars, group.FieldAudioSttPricePerHour, group.FieldProfitMinMargin, group.FieldProfitSafetyBuffer:
+		case group.FieldRateMultiplier, group.FieldPeakRateMultiplier, group.FieldDynamicQuotaLimitUsd, group.FieldDailyLimitUsd, group.FieldWeeklyLimitUsd, group.FieldMonthlyLimitUsd, group.FieldImageRateMultiplier, group.FieldImagePrice1k, group.FieldImagePrice2k, group.FieldImagePrice4k, group.FieldBatchImageDiscountMultiplier, group.FieldBatchImageHoldMultiplier, group.FieldVideoRateMultiplier, group.FieldVideoPrice480p, group.FieldVideoPrice720p, group.FieldVideoPrice1080p, group.FieldWebSearchPricePerCall, group.FieldSearchPricePer1k, group.FieldAudioRealtimePricePerMin, group.FieldAudioTtsPricePerMillionChars, group.FieldAudioSttPricePerHour, group.FieldProfitMinMargin, group.FieldProfitSafetyBuffer:
 			values[i] = new(sql.NullFloat64)
-		case group.FieldID, group.FieldDefaultValidityDays, group.FieldFallbackGroupID, group.FieldFallbackGroupIDOnInvalidRequest, group.FieldSortOrder, group.FieldRpmLimit:
+		case group.FieldID, group.FieldDynamicQuotaPositions, group.FieldDefaultValidityDays, group.FieldFallbackGroupID, group.FieldFallbackGroupIDOnInvalidRequest, group.FieldSortOrder, group.FieldRpmLimit:
 			values[i] = new(sql.NullInt64)
 		case group.FieldName, group.FieldDescription, group.FieldPeakStart, group.FieldPeakEnd, group.FieldStatus, group.FieldDuplicateOperationID, group.FieldPlatform, group.FieldSubscriptionType, group.FieldDefaultMappedModel, group.FieldMaxReasoningEffort, group.FieldMaxReasoningEffortOverLimit:
 			values[i] = new(sql.NullString)
@@ -395,6 +403,32 @@ func (_m *Group) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field subscription_type", values[i])
 			} else if value.Valid {
 				_m.SubscriptionType = value.String
+			}
+		case group.FieldDynamicQuotaEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field dynamic_quota_enabled", values[i])
+			} else if value.Valid {
+				_m.DynamicQuotaEnabled = value.Bool
+			}
+		case group.FieldDynamicQuotaPositions:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field dynamic_quota_positions", values[i])
+			} else if value.Valid {
+				_m.DynamicQuotaPositions = new(int64)
+				*_m.DynamicQuotaPositions = value.Int64
+			}
+		case group.FieldDynamicQuotaAbnormal:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field dynamic_quota_abnormal", values[i])
+			} else if value.Valid {
+				_m.DynamicQuotaAbnormal = value.Bool
+			}
+		case group.FieldDynamicQuotaLimitUsd:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field dynamic_quota_limit_usd", values[i])
+			} else if value.Valid {
+				_m.DynamicQuotaLimitUsd = new(float64)
+				*_m.DynamicQuotaLimitUsd = value.Float64
 			}
 		case group.FieldDailyLimitUsd:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -869,6 +903,22 @@ func (_m *Group) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("subscription_type=")
 	builder.WriteString(_m.SubscriptionType)
+	builder.WriteString(", ")
+	builder.WriteString("dynamic_quota_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DynamicQuotaEnabled))
+	builder.WriteString(", ")
+	if v := _m.DynamicQuotaPositions; v != nil {
+		builder.WriteString("dynamic_quota_positions=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("dynamic_quota_abnormal=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DynamicQuotaAbnormal))
+	builder.WriteString(", ")
+	if v := _m.DynamicQuotaLimitUsd; v != nil {
+		builder.WriteString("dynamic_quota_limit_usd=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.DailyLimitUsd; v != nil {
 		builder.WriteString("daily_limit_usd=")

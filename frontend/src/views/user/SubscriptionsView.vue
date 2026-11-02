@@ -33,17 +33,20 @@
         >
           <!-- Header -->
           <div
-            class="flex items-center justify-between border-b border-gray-100 p-4 dark:border-dark-700"
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-4 dark:border-dark-700"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex min-w-0 flex-1 items-center gap-3">
               <div :class="['h-1.5 w-1.5 shrink-0 rounded-full', platformAccentDotClass(subscription.group?.platform || '')]" />
-              <div>
-                <div class="flex items-center gap-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
                   <h3 class="font-semibold text-gray-900 dark:text-white">
                     {{ subscription.group?.name || `Group #${subscription.group_id}` }}
                   </h3>
                   <span :class="['rounded-md border px-2 py-0.5 text-[11px] font-medium', platformBadgeClass(subscription.group?.platform || '')]">
                     {{ platformLabel(subscription.group?.platform || '') }}
+                  </span>
+                  <span v-if="subscription.quota_limits" class="text-[11px] text-sky-600 dark:text-sky-400">
+                    {{ t('userSubscriptions.dynamicPositions', { positions: subscription.quota_limits.positions }) }}
                   </span>
                 </div>
                 <p v-if="subscription.group?.description" class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">
@@ -57,7 +60,7 @@
                 </div>
               </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex shrink-0 items-center gap-2 whitespace-nowrap">
               <span
                 :class="[
                   'rounded-full px-2 py-0.5 text-xs font-medium',
@@ -101,14 +104,14 @@
             </div>
 
             <!-- Daily Usage -->
-            <div v-if="subscription.group?.daily_limit_usd" class="space-y-2">
+            <div v-if="getSubscriptionDailyLimit(subscription)" class="space-y-2">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {{ t('userSubscriptions.daily') }}
                 </span>
                 <span class="text-sm text-gray-500 dark:text-dark-400">
                   ${{ (subscription.daily_usage_usd || 0).toFixed(2) }} / ${{
-                    subscription.group.daily_limit_usd.toFixed(2)
+                    getSubscriptionDailyLimit(subscription)?.toFixed(2)
                   }}
                 </span>
               </div>
@@ -118,13 +121,13 @@
                   :class="
                     getProgressBarClass(
                       subscription.daily_usage_usd,
-                      subscription.group.daily_limit_usd
+                      getSubscriptionDailyLimit(subscription)
                     )
                   "
                   :style="{
                     width: getProgressWidth(
                       subscription.daily_usage_usd,
-                      subscription.group.daily_limit_usd
+                      getSubscriptionDailyLimit(subscription)
                     )
                   }"
                 ></div>
@@ -138,14 +141,14 @@
             </div>
 
             <!-- Weekly Usage -->
-            <div v-if="subscription.group?.weekly_limit_usd" class="space-y-2">
+            <div v-if="getSubscriptionWeeklyLimit(subscription)" class="space-y-2">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {{ t('userSubscriptions.weekly') }}
                 </span>
                 <span class="text-sm text-gray-500 dark:text-dark-400">
                   ${{ (subscription.weekly_usage_usd || 0).toFixed(2) }} / ${{
-                    subscription.group.weekly_limit_usd.toFixed(2)
+                    getSubscriptionWeeklyLimit(subscription)?.toFixed(2)
                   }}
                 </span>
               </div>
@@ -155,13 +158,13 @@
                   :class="
                     getProgressBarClass(
                       subscription.weekly_usage_usd,
-                      subscription.group.weekly_limit_usd
+                      getSubscriptionWeeklyLimit(subscription)
                     )
                   "
                   :style="{
                     width: getProgressWidth(
                       subscription.weekly_usage_usd,
-                      subscription.group.weekly_limit_usd
+                      getSubscriptionWeeklyLimit(subscription)
                     )
                   }"
                 ></div>
@@ -222,8 +225,8 @@
             <!-- No limits configured - Unlimited badge -->
             <div
               v-if="
-                !subscription.group?.daily_limit_usd &&
-                !subscription.group?.weekly_limit_usd &&
+                !getSubscriptionDailyLimit(subscription) &&
+                !getSubscriptionWeeklyLimit(subscription) &&
                 !subscription.group?.monthly_limit_usd
               "
               class="flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 py-6 dark:from-emerald-900/20 dark:to-teal-900/20"
@@ -262,6 +265,8 @@ import { platformBorderClass, platformBadgeClass, platformButtonClass, platformL
 import {
   getExpirationDateRelation,
   getRemainingDurationParts,
+  getSubscriptionDailyLimit,
+  getSubscriptionWeeklyLimit,
   isOneTimeDailyQuota,
   type RemainingDurationParts
 } from '@/utils/subscriptionQuota'

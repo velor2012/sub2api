@@ -139,6 +139,7 @@ type OpenAIQuotaService struct {
 	referralClient       OpenAIReferralClient
 	agentIdentityTaskMu  sync.Mutex
 	agentIdentityWS      agentIdentityWSConnectionInvalidator
+	dynamicQuotaUpdater  *GroupDynamicQuotaUpdater
 }
 
 // NewOpenAIQuotaService constructs a quota service. token provider is required —
@@ -299,6 +300,9 @@ func (s *OpenAIQuotaService) cacheResetCreditsSnapshot(ctx context.Context, acco
 			"OPENAI_QUOTA_CACHE_WRITE_FAILED",
 			"failed to cache reset-credit details",
 		).WithCause(err)
+	}
+	if _, changed := updates["codex_7d_used_percent"]; changed {
+		s.dynamicQuotaUpdater.AccountChanged(ctx, accountID)
 	}
 	return nil
 }

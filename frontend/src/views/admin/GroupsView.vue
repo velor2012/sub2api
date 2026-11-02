@@ -183,6 +183,13 @@
                     : t("admin.groups.subscription.standard")
                 }}
               </span>
+              <!-- 动态额度异常：跨组绑定导致回退固定限额 -->
+              <span
+                v-if="row.dynamic_quota_abnormal"
+                class="badge badge-warning"
+              >
+                {{ t("admin.groups.subscription.dynamicQuotaAbnormal") }}
+              </span>
               <!-- Subscription Limits - compact single line -->
               <div
                 v-if="row.subscription_type === 'subscription'"
@@ -726,6 +733,13 @@
             v-if="createForm.subscription_type === 'subscription'"
             class="space-y-4 border-l-2 border-primary-200 pl-4 dark:border-primary-800"
           >
+            <div v-if="createForm.platform === 'openai'" class="space-y-3">
+              <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input v-model="createForm.dynamic_quota_enabled" type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                {{ t("admin.groups.subscription.dynamicQuota") }}
+              </label>
+              <p class="input-hint">{{ t("admin.groups.subscription.dynamicQuotaHint") }}</p>
+            </div>
             <div>
               <label class="input-label">{{
                 t("admin.groups.subscription.dailyLimit")
@@ -2380,6 +2394,16 @@
             v-if="editForm.subscription_type === 'subscription'"
             class="space-y-4 border-l-2 border-primary-200 pl-4 dark:border-primary-800"
           >
+            <div v-if="editForm.platform === 'openai'" class="space-y-3">
+              <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input v-model="editForm.dynamic_quota_enabled" type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                {{ t("admin.groups.subscription.dynamicQuota") }}
+              </label>
+              <p class="input-hint">{{ t("admin.groups.subscription.dynamicQuotaHint") }}</p>
+              <span v-if="editingGroup?.dynamic_quota_abnormal" class="badge badge-warning">
+                {{ t("admin.groups.subscription.dynamicQuotaAbnormal") }}
+              </span>
+            </div>
             <div>
               <label class="input-label">{{
                 t("admin.groups.subscription.dailyLimit")
@@ -4980,6 +5004,7 @@ const createForm = reactive({
   daily_limit_usd: null as number | null,
   weekly_limit_usd: null as number | null,
   monthly_limit_usd: null as number | null,
+  dynamic_quota_enabled: false,
   long_context_pricing_enabled: true,
   force_openai_fast: false,
   free_openai_fast: false,
@@ -5347,6 +5372,7 @@ const editForm = reactive({
   daily_limit_usd: null as number | null,
   weekly_limit_usd: null as number | null,
   monthly_limit_usd: null as number | null,
+  dynamic_quota_enabled: false,
   long_context_pricing_enabled: true,
   force_openai_fast: false,
   free_openai_fast: false,
@@ -5823,6 +5849,7 @@ const closeCreateModal = () => {
   createForm.daily_limit_usd = null;
   createForm.weekly_limit_usd = null;
   createForm.monthly_limit_usd = null;
+  createForm.dynamic_quota_enabled = false;
   createForm.allow_image_generation = false;
   createForm.allow_batch_image_generation = false;
   createForm.image_count_billing = false;
@@ -5955,6 +5982,7 @@ const handleCreateGroup = async () => {
   try {
     const {
       video_model_prices: _createFormVideoModelPrices,
+      dynamic_quota_enabled,
       ...createGroupForm
     } = createForm;
     const videoModelPrices = serializeVideoModelPrices(
@@ -5963,6 +5991,11 @@ const handleCreateGroup = async () => {
     // 构建请求数据，包含模型路由配置
     const requestData = {
       ...createGroupForm,
+      ...(createForm.platform === "openai" && createForm.subscription_type === "subscription"
+        ? {
+            dynamic_quota_enabled,
+          }
+        : {}),
       force_openai_fast: normalizeGroupOpenAIFast(
         createForm.platform,
         createForm.force_openai_fast,
@@ -6113,6 +6146,7 @@ const handleEdit = async (group: AdminGroup) => {
   editForm.daily_limit_usd = group.daily_limit_usd;
   editForm.weekly_limit_usd = group.weekly_limit_usd;
   editForm.monthly_limit_usd = group.monthly_limit_usd;
+  editForm.dynamic_quota_enabled = group.dynamic_quota_enabled ?? false;
   editForm.long_context_pricing_enabled =
     group.long_context_pricing_enabled ?? true;
   editForm.force_openai_fast = group.force_openai_fast ?? false;
@@ -6305,8 +6339,15 @@ const handleUpdateGroup = async () => {
   submitting.value = true;
   try {
     // 转换 fallback_group_id: null -> 0 (后端使用 0 表示清除)
+    const { dynamic_quota_enabled, ...editGroupForm } = editForm;
     const payload = {
-      ...editForm,
+      ...editGroupForm,
+      ...(editForm.platform === "openai" &&
+      editForm.subscription_type === "subscription"
+        ? {
+            dynamic_quota_enabled,
+          }
+        : {}),
       force_openai_fast: normalizeGroupOpenAIFast(
         editForm.platform,
         editForm.force_openai_fast,

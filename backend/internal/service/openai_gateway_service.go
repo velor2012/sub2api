@@ -471,6 +471,7 @@ type OpenAIGatewayService struct {
 	balanceNotifyService  *BalanceNotifyService
 	settingService        *SettingService
 	userPlatformQuotaRepo UserPlatformQuotaRepository
+	dynamicQuotaUpdater   *GroupDynamicQuotaUpdater
 	liveAttestation       liveattestation.Provider
 	liveAttestationCipher SecretEncryptor
 

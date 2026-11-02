@@ -658,9 +658,9 @@ func (s *UserSubscriptionRepoSuite) TestBatchUpdateExpiredStatus() {
 		c.SetExpiresAt(time.Now().Add(-24 * time.Hour))
 	})
 
-	affected, err := s.repo.BatchUpdateExpiredStatus(s.ctx)
+	groupIDs, err := s.repo.BatchUpdateExpiredStatus(s.ctx)
 	s.Require().NoError(err, "BatchUpdateExpiredStatus")
-	s.Require().Equal(int64(1), affected)
+	s.Require().Equal([]int64{groupPast.ID}, groupIDs, "expected distinct affected group IDs")
 
 	gotActive, _ := s.repo.GetByID(s.ctx, active.ID)
 	s.Require().Equal(service.SubscriptionStatusActive, gotActive.Status)
@@ -794,9 +794,9 @@ func (s *UserSubscriptionRepoSuite) TestActiveExpiredBoundaries_UsageAndReset_Ba
 	s.Require().NotNil(afterReset.DailyWindowStart)
 	s.Require().WithinDuration(resetAt, *afterReset.DailyWindowStart, time.Microsecond)
 
-	affected, err := s.repo.BatchUpdateExpiredStatus(s.ctx)
+	groupIDs, err := s.repo.BatchUpdateExpiredStatus(s.ctx)
 	s.Require().NoError(err, "BatchUpdateExpiredStatus")
-	s.Require().Equal(int64(1), affected, "expected 1 affected row")
+	s.Require().Equal([]int64{groupExpired.ID}, groupIDs, "expected 1 affected group")
 
 	updated, err := s.repo.GetByID(s.ctx, expiredActive.ID)
 	s.Require().NoError(err, "GetByID expired")

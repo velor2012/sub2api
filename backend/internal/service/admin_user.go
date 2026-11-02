@@ -365,10 +365,20 @@ func (s *adminServiceImpl) DeleteUser(ctx context.Context, id int64) error {
 	if user.Role == "admin" {
 		return infraerrors.BadRequest("ADMIN_DELETE_FORBIDDEN", "cannot delete admin user; change the role to user first")
 	}
-
 	apiKeys, err := s.listUserAPIKeysForDeletion(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	subGroupIDs, err := s.userSubRepo.ListActiveByUserID(ctx, id)
+	if err != nil {
+		return err
+	}
+	var dynamicGroupIDs []int64
+	for i := range subGroupIDs {
+		if subGroupIDs[i].Group != nil && subGroupIDs[i].Group.DynamicQuotaEnabled {
+			dynamicGroupIDs = append(dynamicGroupIDs, subGroupIDs[i].GroupID)
+		}
 	}
 
 	if s.entClient != nil {
@@ -398,6 +408,11 @@ func (s *adminServiceImpl) DeleteUser(ctx context.Context, id int64) error {
 			}
 		}
 		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, id)
+	}
+	if s.dynamicQuotaUpdater != nil {
+		for _, groupID := range dynamicGroupIDs {
+			s.refreshGroupDynamicQuota(ctx, groupID)
+		}
 	}
 	return nil
 }

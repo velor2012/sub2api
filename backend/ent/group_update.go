@@ -243,6 +243,88 @@ func (_u *GroupUpdate) SetNillableSubscriptionType(v *string) *GroupUpdate {
 	return _u
 }
 
+// SetDynamicQuotaEnabled sets the "dynamic_quota_enabled" field.
+func (_u *GroupUpdate) SetDynamicQuotaEnabled(v bool) *GroupUpdate {
+	_u.mutation.SetDynamicQuotaEnabled(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaEnabled sets the "dynamic_quota_enabled" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDynamicQuotaEnabled(v *bool) *GroupUpdate {
+	if v != nil {
+		_u.SetDynamicQuotaEnabled(*v)
+	}
+	return _u
+}
+
+// SetDynamicQuotaPositions sets the "dynamic_quota_positions" field.
+func (_u *GroupUpdate) SetDynamicQuotaPositions(v int64) *GroupUpdate {
+	_u.mutation.ResetDynamicQuotaPositions()
+	_u.mutation.SetDynamicQuotaPositions(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaPositions sets the "dynamic_quota_positions" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDynamicQuotaPositions(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetDynamicQuotaPositions(*v)
+	}
+	return _u
+}
+
+// AddDynamicQuotaPositions adds value to the "dynamic_quota_positions" field.
+func (_u *GroupUpdate) AddDynamicQuotaPositions(v int64) *GroupUpdate {
+	_u.mutation.AddDynamicQuotaPositions(v)
+	return _u
+}
+
+// ClearDynamicQuotaPositions clears the value of the "dynamic_quota_positions" field.
+func (_u *GroupUpdate) ClearDynamicQuotaPositions() *GroupUpdate {
+	_u.mutation.ClearDynamicQuotaPositions()
+	return _u
+}
+
+// SetDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field.
+func (_u *GroupUpdate) SetDynamicQuotaAbnormal(v bool) *GroupUpdate {
+	_u.mutation.SetDynamicQuotaAbnormal(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDynamicQuotaAbnormal(v *bool) *GroupUpdate {
+	if v != nil {
+		_u.SetDynamicQuotaAbnormal(*v)
+	}
+	return _u
+}
+
+// SetDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field.
+func (_u *GroupUpdate) SetDynamicQuotaLimitUsd(v float64) *GroupUpdate {
+	_u.mutation.ResetDynamicQuotaLimitUsd()
+	_u.mutation.SetDynamicQuotaLimitUsd(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDynamicQuotaLimitUsd(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetDynamicQuotaLimitUsd(*v)
+	}
+	return _u
+}
+
+// AddDynamicQuotaLimitUsd adds value to the "dynamic_quota_limit_usd" field.
+func (_u *GroupUpdate) AddDynamicQuotaLimitUsd(v float64) *GroupUpdate {
+	_u.mutation.AddDynamicQuotaLimitUsd(v)
+	return _u
+}
+
+// ClearDynamicQuotaLimitUsd clears the value of the "dynamic_quota_limit_usd" field.
+func (_u *GroupUpdate) ClearDynamicQuotaLimitUsd() *GroupUpdate {
+	_u.mutation.ClearDynamicQuotaLimitUsd()
+	return _u
+}
+
 // SetDailyLimitUsd sets the "daily_limit_usd" field.
 func (_u *GroupUpdate) SetDailyLimitUsd(v float64) *GroupUpdate {
 	_u.mutation.ResetDailyLimitUsd()
@@ -1640,6 +1722,30 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.SubscriptionType(); ok {
 		_spec.SetField(group.FieldSubscriptionType, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.DynamicQuotaEnabled(); ok {
+		_spec.SetField(group.FieldDynamicQuotaEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DynamicQuotaPositions(); ok {
+		_spec.SetField(group.FieldDynamicQuotaPositions, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDynamicQuotaPositions(); ok {
+		_spec.AddField(group.FieldDynamicQuotaPositions, field.TypeInt64, value)
+	}
+	if _u.mutation.DynamicQuotaPositionsCleared() {
+		_spec.ClearField(group.FieldDynamicQuotaPositions, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.DynamicQuotaAbnormal(); ok {
+		_spec.SetField(group.FieldDynamicQuotaAbnormal, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DynamicQuotaLimitUsd(); ok {
+		_spec.SetField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedDynamicQuotaLimitUsd(); ok {
+		_spec.AddField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64, value)
+	}
+	if _u.mutation.DynamicQuotaLimitUsdCleared() {
+		_spec.ClearField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.DailyLimitUsd(); ok {
 		_spec.SetField(group.FieldDailyLimitUsd, field.TypeFloat64, value)
 	}
@@ -2460,6 +2566,88 @@ func (_u *GroupUpdateOne) SetNillableSubscriptionType(v *string) *GroupUpdateOne
 	if v != nil {
 		_u.SetSubscriptionType(*v)
 	}
+	return _u
+}
+
+// SetDynamicQuotaEnabled sets the "dynamic_quota_enabled" field.
+func (_u *GroupUpdateOne) SetDynamicQuotaEnabled(v bool) *GroupUpdateOne {
+	_u.mutation.SetDynamicQuotaEnabled(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaEnabled sets the "dynamic_quota_enabled" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDynamicQuotaEnabled(v *bool) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDynamicQuotaEnabled(*v)
+	}
+	return _u
+}
+
+// SetDynamicQuotaPositions sets the "dynamic_quota_positions" field.
+func (_u *GroupUpdateOne) SetDynamicQuotaPositions(v int64) *GroupUpdateOne {
+	_u.mutation.ResetDynamicQuotaPositions()
+	_u.mutation.SetDynamicQuotaPositions(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaPositions sets the "dynamic_quota_positions" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDynamicQuotaPositions(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDynamicQuotaPositions(*v)
+	}
+	return _u
+}
+
+// AddDynamicQuotaPositions adds value to the "dynamic_quota_positions" field.
+func (_u *GroupUpdateOne) AddDynamicQuotaPositions(v int64) *GroupUpdateOne {
+	_u.mutation.AddDynamicQuotaPositions(v)
+	return _u
+}
+
+// ClearDynamicQuotaPositions clears the value of the "dynamic_quota_positions" field.
+func (_u *GroupUpdateOne) ClearDynamicQuotaPositions() *GroupUpdateOne {
+	_u.mutation.ClearDynamicQuotaPositions()
+	return _u
+}
+
+// SetDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field.
+func (_u *GroupUpdateOne) SetDynamicQuotaAbnormal(v bool) *GroupUpdateOne {
+	_u.mutation.SetDynamicQuotaAbnormal(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaAbnormal sets the "dynamic_quota_abnormal" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDynamicQuotaAbnormal(v *bool) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDynamicQuotaAbnormal(*v)
+	}
+	return _u
+}
+
+// SetDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field.
+func (_u *GroupUpdateOne) SetDynamicQuotaLimitUsd(v float64) *GroupUpdateOne {
+	_u.mutation.ResetDynamicQuotaLimitUsd()
+	_u.mutation.SetDynamicQuotaLimitUsd(v)
+	return _u
+}
+
+// SetNillableDynamicQuotaLimitUsd sets the "dynamic_quota_limit_usd" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDynamicQuotaLimitUsd(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDynamicQuotaLimitUsd(*v)
+	}
+	return _u
+}
+
+// AddDynamicQuotaLimitUsd adds value to the "dynamic_quota_limit_usd" field.
+func (_u *GroupUpdateOne) AddDynamicQuotaLimitUsd(v float64) *GroupUpdateOne {
+	_u.mutation.AddDynamicQuotaLimitUsd(v)
+	return _u
+}
+
+// ClearDynamicQuotaLimitUsd clears the value of the "dynamic_quota_limit_usd" field.
+func (_u *GroupUpdateOne) ClearDynamicQuotaLimitUsd() *GroupUpdateOne {
+	_u.mutation.ClearDynamicQuotaLimitUsd()
 	return _u
 }
 
@@ -3889,6 +4077,30 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.SubscriptionType(); ok {
 		_spec.SetField(group.FieldSubscriptionType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DynamicQuotaEnabled(); ok {
+		_spec.SetField(group.FieldDynamicQuotaEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DynamicQuotaPositions(); ok {
+		_spec.SetField(group.FieldDynamicQuotaPositions, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDynamicQuotaPositions(); ok {
+		_spec.AddField(group.FieldDynamicQuotaPositions, field.TypeInt64, value)
+	}
+	if _u.mutation.DynamicQuotaPositionsCleared() {
+		_spec.ClearField(group.FieldDynamicQuotaPositions, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.DynamicQuotaAbnormal(); ok {
+		_spec.SetField(group.FieldDynamicQuotaAbnormal, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DynamicQuotaLimitUsd(); ok {
+		_spec.SetField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedDynamicQuotaLimitUsd(); ok {
+		_spec.AddField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64, value)
+	}
+	if _u.mutation.DynamicQuotaLimitUsdCleared() {
+		_spec.ClearField(group.FieldDynamicQuotaLimitUsd, field.TypeFloat64)
 	}
 	if value, ok := _u.mutation.DailyLimitUsd(); ok {
 		_spec.SetField(group.FieldDailyLimitUsd, field.TypeFloat64, value)

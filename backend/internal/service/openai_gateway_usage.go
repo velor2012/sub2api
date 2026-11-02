@@ -1,8 +1,5 @@
 package service
 
-// 本文件由 openai_gateway_service.go 纯移动拆分而来：用量记录、计费成本计算与
-// Codex 用量快照。仅做代码搬迁，无任何行为变更。
-
 import (
 	"context"
 	"errors"
@@ -527,6 +524,9 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		return billingErr
 	}
 	writeUsageLogBestEffort(ctx, s.usageLogRepo, usageLog, "service.openai_gateway")
+	if account.Platform == PlatformOpenAI && apiKey.Group != nil && apiKey.Group.DynamicQuotaEnabled {
+		s.dynamicQuotaUpdater.AccountChanged(ctx, account.ID)
+	}
 
 	return nil
 }
@@ -1170,6 +1170,7 @@ func (s *OpenAIGatewayService) updateCodexUsageSnapshot(ctx context.Context, acc
 		defer cancel()
 		if err := s.accountRepo.UpdateExtra(updateCtx, accountID, updates); err == nil {
 			notifyOpenAIAutoReset(accountID)
+			s.dynamicQuotaUpdater.AccountChanged(updateCtx, accountID)
 		}
 	}()
 }

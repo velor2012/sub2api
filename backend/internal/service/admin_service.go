@@ -239,7 +239,8 @@ type CreateGroupInput struct {
 	Platform                  string
 	RateMultiplier            float64
 	IsExclusive               bool
-	SubscriptionType          string   // standard/subscription
+	SubscriptionType          string // standard/subscription
+	DynamicQuotaEnabled       bool
 	DailyLimitUSD             *float64 // 日限额 (USD)
 	WeeklyLimitUSD            *float64 // 周限额 (USD)
 	MonthlyLimitUSD           *float64 // 月限额 (USD)
@@ -322,7 +323,8 @@ type UpdateGroupInput struct {
 	RateMultiplier            *float64 // 使用指针以支持设置为0
 	IsExclusive               *bool
 	Status                    string
-	SubscriptionType          string   // standard/subscription
+	SubscriptionType          string // standard/subscription
+	DynamicQuotaEnabled       *bool
 	DailyLimitUSD             *float64 // 日限额 (USD)
 	WeeklyLimitUSD            *float64 // 周限额 (USD)
 	MonthlyLimitUSD           *float64 // 月限额 (USD)
@@ -717,6 +719,7 @@ type adminServiceImpl struct {
 	compositeResolver    *CompositeRouteResolver
 	// 分组平台变更后用来失效渠道缓存；可为 nil（缓存会在 TTL 到期后自然重建）
 	channelCacheInvalidator ChannelCacheInvalidator
+	dynamicQuotaUpdater     *GroupDynamicQuotaUpdater
 }
 
 // ChannelCacheInvalidator 失效渠道缓存。
@@ -758,6 +761,7 @@ func NewAdminService(
 	compositeRouteRepo CompositeModelRouteRepository,
 	compositeResolver *CompositeRouteResolver,
 	channelCacheInvalidator ChannelCacheInvalidator,
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater,
 ) AdminService {
 	return &adminServiceImpl{
 		cfg:                  cfg,
@@ -788,5 +792,6 @@ func NewAdminService(
 		compositeResolver:    compositeResolver,
 
 		channelCacheInvalidator: channelCacheInvalidator,
+		dynamicQuotaUpdater:     dynamicQuotaUpdater,
 	}
 }

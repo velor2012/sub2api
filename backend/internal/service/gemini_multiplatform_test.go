@@ -247,6 +247,12 @@ func (m *mockGroupRepoForGemini) ListActiveByPlatform(ctx context.Context, platf
 func (m *mockGroupRepoForGemini) ExistsByName(ctx context.Context, name string) (bool, error) {
 	return false, nil
 }
+func (*mockGroupRepoForGemini) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*mockGroupRepoForGemini) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (m *mockGroupRepoForGemini) GetAccountCount(ctx context.Context, groupID int64) (int64, int64, error) {
 	return 0, 0, nil
 }

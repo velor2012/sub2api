@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 
@@ -86,6 +87,86 @@ func (r *groupRepository) Create(ctx context.Context, groupIn *service.Group) er
 	return nil
 }
 
+func (r *groupRepository) UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64, positions int64) (bool, error) {
+	if estimateSum != nil && (*estimateSum <= 0 || math.IsNaN(*estimateSum) || math.IsInf(*estimateSum, 0)) {
+		estimateSum = nil
+	}
+	// Single-statement recompute: eligibility, cross-group abnormality and positions
+	// are all derived in SQL under the group row lock; Go only supplies the estimate sum.
+	// Ineligible groups (disabled / non-openai / non-subscription) are still updated so
+	// stale derived values do not survive a config change.
+	result, err := r.sql.ExecContext(ctx, `
+		UPDATE groups g SET
+			dynamic_quota_limit_usd = computed.limit_usd,
+			dynamic_quota_positions = candidate.positions,
+			dynamic_quota_abnormal = candidate.abnormal
+		FROM (
+			SELECT current.id,
+				CASE WHEN current.platform = 'openai' AND current.subscription_type = 'subscription' AND current.dynamic_quota_enabled
+					THEN (SELECT count(*) FROM user_subscriptions us JOIN users u ON u.id = us.user_id
+						WHERE us.group_id = current.id AND us.status = 'active'
+						AND us.expires_at > now() AND us.deleted_at IS NULL AND u.deleted_at IS NULL)
+					ELSE 0 END AS positions,
+				(current.platform = 'openai' AND current.subscription_type = 'subscription' AND current.dynamic_quota_enabled
+					AND EXISTS (
+						SELECT 1 FROM account_groups ag2
+						JOIN groups other ON other.id = ag2.group_id
+						WHERE ag2.account_id IN (
+							SELECT ag3.account_id FROM account_groups ag3
+							WHERE ag3.group_id = current.id
+						) AND other.id <> current.id AND other.deleted_at IS NULL
+							AND other.platform = 'openai' AND other.subscription_type = 'subscription'
+							AND other.dynamic_quota_enabled
+					)) AS abnormal,
+				$2::double precision AS estimate_sum,
+				(current.platform = 'openai' AND current.subscription_type = 'subscription' AND current.dynamic_quota_enabled) AS eligible
+			FROM groups current
+			WHERE current.id = $1 AND current.deleted_at IS NULL
+			FOR UPDATE
+		) candidate,
+		LATERAL (
+			SELECT CASE
+				WHEN candidate.abnormal THEN NULL::double precision
+				WHEN candidate.eligible AND candidate.positions > 0 AND candidate.estimate_sum IS NOT NULL
+					THEN candidate.estimate_sum / candidate.positions
+				ELSE NULL::double precision
+			END AS limit_usd
+		) computed
+		WHERE g.id = candidate.id
+			AND (g.dynamic_quota_limit_usd, g.dynamic_quota_positions, g.dynamic_quota_abnormal)
+				IS DISTINCT FROM (computed.limit_usd, candidate.positions, candidate.abnormal)
+	`, groupID, estimateSum)
+	if err != nil {
+		return false, err
+	}
+	changed, err := result.RowsAffected()
+	return changed > 0, err
+}
+
+func (r *groupRepository) ListDynamicGroupIDsByAccount(ctx context.Context, accountID int64) ([]int64, error) {
+	rows, err := r.sql.QueryContext(ctx, `
+		SELECT g.id FROM groups g
+		JOIN account_groups ag ON ag.group_id = g.id
+		WHERE ag.account_id = $1 AND g.deleted_at IS NULL
+			AND g.platform = 'openai' AND g.subscription_type = 'subscription'
+			AND g.dynamic_quota_enabled
+		ORDER BY g.id
+	`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func createGroupRecord(ctx context.Context, client *dbent.Client, groupIn *service.Group) error {
 	if groupIn == nil {
 		return errors.New("group is nil")
@@ -103,6 +184,7 @@ func createGroupRecord(ctx context.Context, client *dbent.Client, groupIn *servi
 		SetIsExclusive(groupIn.IsExclusive).
 		SetStatus(groupIn.Status).
 		SetSubscriptionType(groupIn.SubscriptionType).
+		SetDynamicQuotaEnabled(groupIn.DynamicQuotaEnabled).
 		SetNillableDailyLimitUsd(groupIn.DailyLimitUSD).
 		SetNillableWeeklyLimitUsd(groupIn.WeeklyLimitUSD).
 		SetNillableMonthlyLimitUsd(groupIn.MonthlyLimitUSD).
@@ -295,6 +377,7 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		SetIsExclusive(groupIn.IsExclusive).
 		SetStatus(groupIn.Status).
 		SetSubscriptionType(groupIn.SubscriptionType).
+		SetDynamicQuotaEnabled(groupIn.DynamicQuotaEnabled).
 		SetNillableDailyLimitUsd(groupIn.DailyLimitUSD).
 		SetNillableWeeklyLimitUsd(groupIn.WeeklyLimitUSD).
 		SetNillableMonthlyLimitUsd(groupIn.MonthlyLimitUSD).

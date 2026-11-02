@@ -191,6 +191,10 @@ func groupFromServiceBase(g *service.Group) Group {
 		DailyLimitUSD:                   g.DailyLimitUSD,
 		WeeklyLimitUSD:                  g.WeeklyLimitUSD,
 		MonthlyLimitUSD:                 g.MonthlyLimitUSD,
+		DynamicQuotaEnabled:             g.DynamicQuotaEnabled,
+		DynamicQuotaPositions:           g.DynamicQuotaPositions,
+		DynamicQuotaAbnormal:            g.DynamicQuotaAbnormal,
+		DynamicQuotaLimitUSD:            g.DynamicQuotaLimitUSD,
 		LongContextPricingEnabled:       g.LongContextPricingEnabled,
 		AllowImageGeneration:            g.AllowImageGeneration,
 		AllowBatchImageGeneration:       g.AllowBatchImageGeneration,
@@ -890,7 +894,7 @@ func UserSubscriptionFromServiceAdmin(sub *service.UserSubscription) *AdminUserS
 }
 
 func userSubscriptionFromServiceBase(sub *service.UserSubscription) UserSubscription {
-	return UserSubscription{
+	out := UserSubscription{
 		ID:                 sub.ID,
 		UserID:             sub.UserID,
 		GroupID:            sub.GroupID,
@@ -909,6 +913,26 @@ func userSubscriptionFromServiceBase(sub *service.UserSubscription) UserSubscrip
 		User:               UserFromServiceShallow(sub.User),
 		Group:              GroupFromServiceShallow(sub.Group),
 	}
+	if g := sub.Group; g != nil && g.DynamicQuotaEnabled && g.Platform == service.PlatformOpenAI && g.IsSubscriptionType() {
+		out.QuotaLimits = &SubscriptionQuotaLimits{
+			DynamicEnabled:          true,
+			Abnormal:                g.DynamicQuotaAbnormal,
+			Positions:               g.DynamicQuotaPositions,
+			DynamicDailyLimitUSD:    g.DynamicDailyLimitUSD(),
+			DynamicWeeklyLimitUSD:   dynamicWeeklyLimit(g),
+			EffectiveDailyLimitUSD:  g.EffectiveDailyLimitUSD(),
+			EffectiveWeeklyLimitUSD: g.EffectiveWeeklyLimitUSD(),
+		}
+	}
+	return out
+}
+
+// dynamicWeeklyLimit: D 为 nil 或分组异常（回退固定额度）时返回 0，与 unlimited 语义一致。
+func dynamicWeeklyLimit(g *service.Group) float64 {
+	if g.DynamicQuotaAbnormal || g.DynamicQuotaLimitUSD == nil {
+		return 0
+	}
+	return *g.DynamicQuotaLimitUSD
 }
 
 func BulkAssignResultFromService(r *service.BulkAssignResult) *BulkAssignResult {

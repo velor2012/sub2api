@@ -146,12 +146,13 @@ type WindowStats struct {
 
 // UsageProgress 使用量进度
 type UsageProgress struct {
-	Utilization      float64      `json:"utilization"`            // 使用率百分比 (0-100+，100表示100%)
-	ResetsAt         *time.Time   `json:"resets_at"`              // 重置时间
-	RemainingSeconds int          `json:"remaining_seconds"`      // 距重置剩余秒数
-	WindowStats      *WindowStats `json:"window_stats,omitempty"` // 窗口期统计（从窗口开始到当前的使用量）
-	UsedRequests     int64        `json:"used_requests,omitempty"`
-	LimitRequests    int64        `json:"limit_requests,omitempty"`
+	Utilization        float64      `json:"utilization"`            // 使用率百分比 (0-100+，100表示100%)
+	ResetsAt           *time.Time   `json:"resets_at"`              // 重置时间
+	RemainingSeconds   int          `json:"remaining_seconds"`      // 距重置剩余秒数
+	WindowStats        *WindowStats `json:"window_stats,omitempty"` // 窗口期统计（从窗口开始到当前的使用量）
+	EstimatedTotalCost *float64     `json:"estimated_total_cost,omitempty"`
+	UsedRequests       int64        `json:"used_requests,omitempty"`
+	LimitRequests      int64        `json:"limit_requests,omitempty"`
 }
 
 // AntigravityModelQuota Antigravity 单个模型的配额信息
@@ -298,6 +299,7 @@ type AccountUsageService struct {
 	grokQuotaFetcher        *GrokQuotaFetcher
 	grokQuotaService        *GrokQuotaService
 	openAIQuotaService      *OpenAIQuotaService
+	dynamicQuotaUpdater     *GroupDynamicQuotaUpdater
 	cache                   *UsageCache
 	identityCache           IdentityCache
 	tlsFPProfileService     *TLSFingerprintProfileService
@@ -764,6 +766,13 @@ func (s *AccountUsageService) getOpenAIUsage(ctx context.Context, account *Accou
 			usage.SevenDay = &UsageProgress{Utilization: 0}
 		}
 		usage.SevenDay.WindowStats = windowStatsFromAccountStats(stats)
+		usage.SevenDay.EstimatedTotalCost = estimateOpenAIQuota(usage.SevenDay)
+	}
+
+	if s.dynamicQuotaUpdater != nil {
+		if err := s.dynamicQuotaUpdater.RefreshAccountUsage(ctx, account, usage); err != nil {
+			slog.Warn("refresh_account_dynamic_quota_failed", "account_id", account.ID, "error", err)
+		}
 	}
 
 	return usage, nil
@@ -924,6 +933,7 @@ func (s *AccountUsageService) persistOpenAICodexProbeSnapshot(accountID int64, u
 		defer updateCancel()
 		if err := s.accountRepo.UpdateExtra(updateCtx, accountID, updates); err == nil {
 			notifyOpenAIAutoReset(accountID)
+			s.dynamicQuotaUpdater.AccountChanged(updateCtx, accountID)
 		}
 	}()
 }

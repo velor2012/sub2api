@@ -35,11 +35,15 @@ type Group struct {
 	// an already committed one-click copy. It must never be mapped to API DTOs.
 	DuplicateOperationID string
 
-	SubscriptionType    string
-	DailyLimitUSD       *float64
-	WeeklyLimitUSD      *float64
-	MonthlyLimitUSD     *float64
-	DefaultValidityDays int
+	SubscriptionType     string
+	DailyLimitUSD        *float64
+	WeeklyLimitUSD       *float64
+	MonthlyLimitUSD      *float64
+	DynamicQuotaEnabled   bool
+	DynamicQuotaPositions *int64
+	DynamicQuotaAbnormal  bool
+	DynamicQuotaLimitUSD  *float64
+	DefaultValidityDays  int
 
 	// 图片生成计费配置（antigravity 和 gemini 平台使用）
 	AllowImageGeneration         bool
@@ -157,12 +161,41 @@ func (g *Group) IsSubscriptionType() bool {
 	return g.SubscriptionType == SubscriptionTypeSubscription
 }
 
+func (g *Group) UsesDynamicQuota() bool {
+	return g != nil && g.Platform == PlatformOpenAI && g.IsSubscriptionType() &&
+		g.DynamicQuotaEnabled && !g.DynamicQuotaAbnormal && g.DynamicQuotaLimitUSD != nil &&
+		*g.DynamicQuotaLimitUSD > 0 && !math.IsNaN(*g.DynamicQuotaLimitUSD) && !math.IsInf(*g.DynamicQuotaLimitUSD, 0)
+}
+
+func (g *Group) EffectiveDailyLimitUSD() *float64 {
+	if g.DailyLimitUSD == nil || *g.DailyLimitUSD <= 0 || !g.UsesDynamicQuota() || *g.DailyLimitUSD <= *g.DynamicQuotaLimitUSD {
+		return g.DailyLimitUSD
+	}
+	return g.DynamicQuotaLimitUSD
+}
+
+func (g *Group) EffectiveWeeklyLimitUSD() *float64 {
+	if !g.UsesDynamicQuota() || (g.WeeklyLimitUSD != nil && *g.WeeklyLimitUSD > 0 && *g.WeeklyLimitUSD <= *g.DynamicQuotaLimitUSD) {
+		return g.WeeklyLimitUSD
+	}
+	return g.DynamicQuotaLimitUSD
+}
+
+func (g *Group) DynamicDailyLimitUSD() float64 {
+	if g.DailyLimitUSD == nil || *g.DailyLimitUSD <= 0 || !g.UsesDynamicQuota() {
+		return 0
+	}
+	return *g.DynamicQuotaLimitUSD
+}
+
 func (g *Group) HasDailyLimit() bool {
-	return g.DailyLimitUSD != nil && *g.DailyLimitUSD > 0
+	limit := g.EffectiveDailyLimitUSD()
+	return limit != nil && *limit > 0
 }
 
 func (g *Group) HasWeeklyLimit() bool {
-	return g.WeeklyLimitUSD != nil && *g.WeeklyLimitUSD > 0
+	limit := g.EffectiveWeeklyLimitUSD()
+	return limit != nil && *limit > 0
 }
 
 func (g *Group) HasMonthlyLimit() bool {

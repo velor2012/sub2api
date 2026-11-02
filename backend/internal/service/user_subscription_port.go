@@ -22,6 +22,7 @@ type UserSubscriptionRepository interface {
 	ListActiveByUserID(ctx context.Context, userID int64) ([]UserSubscription, error)
 	ListByGroupID(ctx context.Context, groupID int64, params pagination.PaginationParams) ([]UserSubscription, *pagination.PaginationResult, error)
 	List(ctx context.Context, params pagination.PaginationParams, userID, groupID *int64, status, platform, sortBy, sortOrder string) ([]UserSubscription, *pagination.PaginationResult, error)
+	CountActiveByGroupID(ctx context.Context, groupID int64) (int64, error)
 
 	ExistsByUserIDAndGroupID(ctx context.Context, userID, groupID int64) (bool, error)
 	ExistsActiveByUserIDAndGroupID(ctx context.Context, userID, groupID int64) (bool, error)
@@ -41,5 +42,5 @@ type UserSubscriptionRepository interface {
 	ResetMonthlyUsage(ctx context.Context, id int64, expectedWindowStart *time.Time, newWindowStart time.Time) error
 	IncrementUsage(ctx context.Context, id int64, costUSD float64) error
 
-	BatchUpdateExpiredStatus(ctx context.Context) (int64, error)
+	BatchUpdateExpiredStatus(ctx context.Context) ([]int64, error)
 }

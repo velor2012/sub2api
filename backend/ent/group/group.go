@@ -48,6 +48,14 @@ const (
 	FieldPlatform = "platform"
 	// FieldSubscriptionType holds the string denoting the subscription_type field in the database.
 	FieldSubscriptionType = "subscription_type"
+	// FieldDynamicQuotaEnabled holds the string denoting the dynamic_quota_enabled field in the database.
+	FieldDynamicQuotaEnabled = "dynamic_quota_enabled"
+	// FieldDynamicQuotaPositions holds the string denoting the dynamic_quota_positions field in the database.
+	FieldDynamicQuotaPositions = "dynamic_quota_positions"
+	// FieldDynamicQuotaAbnormal holds the string denoting the dynamic_quota_abnormal field in the database.
+	FieldDynamicQuotaAbnormal = "dynamic_quota_abnormal"
+	// FieldDynamicQuotaLimitUsd holds the string denoting the dynamic_quota_limit_usd field in the database.
+	FieldDynamicQuotaLimitUsd = "dynamic_quota_limit_usd"
 	// FieldDailyLimitUsd holds the string denoting the daily_limit_usd field in the database.
 	FieldDailyLimitUsd = "daily_limit_usd"
 	// FieldWeeklyLimitUsd holds the string denoting the weekly_limit_usd field in the database.
@@ -243,6 +251,10 @@ var Columns = []string{
 	FieldDuplicateOperationID,
 	FieldPlatform,
 	FieldSubscriptionType,
+	FieldDynamicQuotaEnabled,
+	FieldDynamicQuotaPositions,
+	FieldDynamicQuotaAbnormal,
+	FieldDynamicQuotaLimitUsd,
 	FieldDailyLimitUsd,
 	FieldWeeklyLimitUsd,
 	FieldMonthlyLimitUsd,
@@ -364,6 +376,10 @@ var (
 	DefaultSubscriptionType string
 	// SubscriptionTypeValidator is a validator for the "subscription_type" field. It is called by the builders before save.
 	SubscriptionTypeValidator func(string) error
+	// DefaultDynamicQuotaEnabled holds the default value on creation for the "dynamic_quota_enabled" field.
+	DefaultDynamicQuotaEnabled bool
+	// DefaultDynamicQuotaAbnormal holds the default value on creation for the "dynamic_quota_abnormal" field.
+	DefaultDynamicQuotaAbnormal bool
 	// DefaultDefaultValidityDays holds the default value on creation for the "default_validity_days" field.
 	DefaultDefaultValidityDays int
 	// DefaultAllowImageGeneration holds the default value on creation for the "allow_image_generation" field.
@@ -527,6 +543,26 @@ func ByPlatform(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionType orders the results by the subscription_type field.
 func BySubscriptionType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionType, opts...).ToFunc()
+}
+
+// ByDynamicQuotaEnabled orders the results by the dynamic_quota_enabled field.
+func ByDynamicQuotaEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDynamicQuotaEnabled, opts...).ToFunc()
+}
+
+// ByDynamicQuotaPositions orders the results by the dynamic_quota_positions field.
+func ByDynamicQuotaPositions(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDynamicQuotaPositions, opts...).ToFunc()
+}
+
+// ByDynamicQuotaAbnormal orders the results by the dynamic_quota_abnormal field.
+func ByDynamicQuotaAbnormal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDynamicQuotaAbnormal, opts...).ToFunc()
+}
+
+// ByDynamicQuotaLimitUsd orders the results by the dynamic_quota_limit_usd field.
+func ByDynamicQuotaLimitUsd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDynamicQuotaLimitUsd, opts...).ToFunc()
 }
 
 // ByDailyLimitUsd orders the results by the daily_limit_usd field.

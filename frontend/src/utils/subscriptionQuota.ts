@@ -14,6 +14,18 @@ export interface RemainingDurationParts {
   minutes: number
 }
 
+export function getSubscriptionDailyLimit(subscription: UserSubscription): number | null | undefined {
+  return subscription.quota_limits
+    ? subscription.quota_limits.effective_daily_limit_usd
+    : subscription.group?.daily_limit_usd
+}
+
+export function getSubscriptionWeeklyLimit(subscription: UserSubscription): number | null | undefined {
+  return subscription.quota_limits
+    ? subscription.quota_limits.effective_weekly_limit_usd
+    : subscription.group?.weekly_limit_usd
+}
+
 export function isOneTimeDailyQuota(
   subscription: Pick<UserSubscription, 'starts_at' | 'expires_at'>
 ): boolean {

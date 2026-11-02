@@ -31,6 +31,7 @@ type RateLimitService struct {
 	settingService        *SettingService
 	tokenCacheInvalidator TokenCacheInvalidator
 	runtimeBlocker        AccountRuntimeBlocker
+	dynamicQuotaUpdater   *GroupDynamicQuotaUpdater
 	// ollamaCloudUsageProbe is the optional Ollama Cloud usage probe scheduler
 	// injected via SetOllamaCloudUsageProbeScheduler. See
 	// ratelimit_service_ollama_429.go for how real-Ollama 429s schedule an async
@@ -1837,6 +1838,7 @@ func (s *RateLimitService) persistOpenAICodexSnapshot(ctx context.Context, accou
 		return
 	}
 	notifyOpenAIAutoReset(account.ID)
+	s.dynamicQuotaUpdater.AccountChanged(ctx, account.ID)
 }
 
 // parseOpenAIRateLimitResetTime 解析 OpenAI 兼容格式的 429 响应，返回重置时间的 Unix 时间戳

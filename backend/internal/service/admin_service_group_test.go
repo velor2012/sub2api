@@ -306,6 +306,12 @@ func (s *groupRepoStubForAdmin) ExistsByName(_ context.Context, _ string) (bool,
 	panic("unexpected ExistsByName call")
 }
 
+func (*groupRepoStubForAdmin) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*groupRepoStubForAdmin) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (s *groupRepoStubForAdmin) GetAccountCount(_ context.Context, _ int64) (int64, int64, error) {
 	panic("unexpected GetAccountCount call")
 }
@@ -1594,6 +1600,12 @@ func (s *groupRepoStubForFallbackCycle) ExistsByName(_ context.Context, _ string
 	panic("unexpected ExistsByName call")
 }
 
+func (*groupRepoStubForFallbackCycle) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*groupRepoStubForFallbackCycle) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (s *groupRepoStubForFallbackCycle) GetAccountCount(_ context.Context, _ int64) (int64, int64, error) {
 	panic("unexpected GetAccountCount call")
 }
@@ -1669,6 +1681,12 @@ func (s *groupRepoStubForInvalidRequestFallback) ExistsByName(_ context.Context,
 	panic("unexpected ExistsByName call")
 }
 
+func (*groupRepoStubForInvalidRequestFallback) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+	return false, nil
+}
+func (*groupRepoStubForInvalidRequestFallback) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
 func (s *groupRepoStubForInvalidRequestFallback) GetAccountCount(_ context.Context, _ int64) (int64, int64, error) {
 	panic("unexpected GetAccountCount call")
 }

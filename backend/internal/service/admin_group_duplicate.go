@@ -111,6 +111,7 @@ func cloneGroupForDuplicate(source *Group, operationID string) *Group {
 		Status:                          duplicateGroupInactiveStatus,
 		DuplicateOperationID:            operationID,
 		SubscriptionType:                source.SubscriptionType,
+		DynamicQuotaEnabled:             source.DynamicQuotaEnabled,
 		DailyLimitUSD:                   cloneGroupValuePointer(source.DailyLimitUSD),
 		WeeklyLimitUSD:                  cloneGroupValuePointer(source.WeeklyLimitUSD),
 		MonthlyLimitUSD:                 cloneGroupValuePointer(source.MonthlyLimitUSD),
@@ -223,6 +224,7 @@ func (s *adminServiceImpl) DuplicateGroup(ctx context.Context, id int64, actorSc
 		duplicate.CreatedAt = time.Time{}
 		duplicate.UpdatedAt = time.Time{}
 		if err := s.groupDuplicateRepo.CreateFromSource(ctx, duplicate, source.ID); err == nil {
+			s.refreshGroupDynamicQuota(ctx, duplicate.ID)
 			hydrated, loadErr := s.groupRepo.GetByID(ctx, duplicate.ID)
 			if loadErr != nil {
 				return nil, fmt.Errorf("load duplicate group: %w", loadErr)

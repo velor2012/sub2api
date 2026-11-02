@@ -14,7 +14,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
-const apiKeyAuthSnapshotVersion = 25 // v25: group image_count_billing switch (per-image billing on image endpoints)
+const apiKeyAuthSnapshotVersion = 27 // v27: dynamic quota positions/abnormal replace seats
 
 type apiKeyAuthCacheConfig struct {
 	l1Size        int
@@ -385,6 +385,10 @@ func (s *APIKeyService) snapshotFromAPIKey(ctx context.Context, apiKey *APIKey) 
 			IsExclusive:                     apiKey.Group.IsExclusive,
 			Status:                          apiKey.Group.Status,
 			SubscriptionType:                apiKey.Group.SubscriptionType,
+			DynamicQuotaEnabled:             apiKey.Group.DynamicQuotaEnabled,
+			DynamicQuotaPositions:           apiKey.Group.DynamicQuotaPositions,
+			DynamicQuotaAbnormal:            apiKey.Group.DynamicQuotaAbnormal,
+			DynamicQuotaLimitUSD:            apiKey.Group.DynamicQuotaLimitUSD,
 			RateMultiplier:                  apiKey.Group.RateMultiplier,
 			DailyLimitUSD:                   apiKey.Group.DailyLimitUSD,
 			WeeklyLimitUSD:                  apiKey.Group.WeeklyLimitUSD,
@@ -488,6 +492,10 @@ func (s *APIKeyService) snapshotToAPIKey(key string, snapshot *APIKeyAuthSnapsho
 			Status:                          snapshot.Group.Status,
 			Hydrated:                        true,
 			SubscriptionType:                snapshot.Group.SubscriptionType,
+			DynamicQuotaEnabled:             snapshot.Group.DynamicQuotaEnabled,
+			DynamicQuotaPositions:           snapshot.Group.DynamicQuotaPositions,
+			DynamicQuotaAbnormal:            snapshot.Group.DynamicQuotaAbnormal,
+			DynamicQuotaLimitUSD:            snapshot.Group.DynamicQuotaLimitUSD,
 			RateMultiplier:                  snapshot.Group.RateMultiplier,
 			DailyLimitUSD:                   snapshot.Group.DailyLimitUSD,
 			WeeklyLimitUSD:                  snapshot.Group.WeeklyLimitUSD,

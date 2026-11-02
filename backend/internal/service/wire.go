@@ -196,9 +196,11 @@ func ProvideOpenAIQuotaService(
 	privacyClientFactory PrivacyClientFactory,
 	referralClient OpenAIReferralClient,
 	openAIGatewayService *OpenAIGatewayService,
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater,
 ) *OpenAIQuotaService {
 	service := NewOpenAIQuotaService(accountRepo, proxyRepo, tokenProvider, privacyClientFactory, referralClient)
 	service.agentIdentityWS = openAIGatewayService
+	service.dynamicQuotaUpdater = dynamicQuotaUpdater
 	return service
 }
 
@@ -211,6 +213,7 @@ func ProvideOpenAIQuotaAutoResetService(
 	audit *AuditLogService,
 	settingService *SettingService,
 	leaderLock LeaderLockCache,
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater,
 ) *OpenAIQuotaAutoResetService {
 	service := NewOpenAIQuotaAutoResetService(
 		accountRepo,
@@ -221,6 +224,7 @@ func ProvideOpenAIQuotaAutoResetService(
 		settingService,
 		leaderLock,
 	)
+	service.dynamicQuotaUpdater = dynamicQuotaUpdater
 	service.Start()
 	return service
 }
@@ -238,6 +242,8 @@ func ProvideAccountUsageService(
 	identityCache IdentityCache,
 	tlsFPProfileService *TLSFingerprintProfileService,
 	openAIGatewayService *OpenAIGatewayService,
+	gatewayService *GatewayService,
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater,
 ) *AccountUsageService {
 	service := NewAccountUsageService(
 		accountRepo,
@@ -253,6 +259,9 @@ func ProvideAccountUsageService(
 		tlsFPProfileService,
 	)
 	service.agentIdentityWS = openAIGatewayService
+	service.dynamicQuotaUpdater = dynamicQuotaUpdater
+	openAIGatewayService.dynamicQuotaUpdater = dynamicQuotaUpdater
+	gatewayService.dynamicQuotaUpdater = dynamicQuotaUpdater
 	return service
 }
 
@@ -440,12 +449,19 @@ func ProvideProxyExpiryService(proxyRepo ProxyRepository) *ProxyExpiryService {
 }
 
 // ProvideSubscriptionExpiryService creates and starts SubscriptionExpiryService.
-func ProvideSubscriptionExpiryService(userSubRepo UserSubscriptionRepository, settingRepo SettingRepository, notificationEmailService *NotificationEmailService, lockCache LeaderLockCache, db *sql.DB) *SubscriptionExpiryService {
+func ProvideSubscriptionExpiryService(userSubRepo UserSubscriptionRepository, settingRepo SettingRepository, notificationEmailService *NotificationEmailService, lockCache LeaderLockCache, db *sql.DB, dynamicQuotaUpdater *GroupDynamicQuotaUpdater) *SubscriptionExpiryService {
 	svc := NewSubscriptionExpiryService(userSubRepo, time.Minute)
 	svc.SetSettingRepository(settingRepo)
 	svc.SetNotificationEmailService(notificationEmailService)
-	svc.SetLeaderLock(lockCache, db)
+	svc.SetDynamicQuotaUpdater(dynamicQuotaUpdater)
 	svc.Start()
+	return svc
+}
+
+// ProvideSubscriptionService wires the subscription service with the dynamic quota updater.
+func ProvideSubscriptionService(groupRepo GroupRepository, userSubRepo UserSubscriptionRepository, billingCacheService *BillingCacheService, entClient *dbent.Client, cfg *config.Config, dynamicQuotaUpdater *GroupDynamicQuotaUpdater) *SubscriptionService {
+	svc := NewSubscriptionService(groupRepo, userSubRepo, billingCacheService, entClient, cfg)
+	svc.SetDynamicQuotaUpdater(dynamicQuotaUpdater)
 	return svc
 }
 
@@ -513,6 +529,7 @@ func ProvideRateLimitService(
 	settingService *SettingService,
 	tokenCacheInvalidator TokenCacheInvalidator,
 	ollamaCloudUsage *OllamaCloudUsageService,
+	dynamicQuotaUpdater *GroupDynamicQuotaUpdater,
 ) *RateLimitService {
 	svc := NewRateLimitService(accountRepo, usageRepo, cfg, geminiQuotaService, tempUnschedCache)
 	if healthCache, ok := tempUnschedCache.(OpenAIAPIKeyHealthCache); ok {
@@ -523,6 +540,7 @@ func ProvideRateLimitService(
 	svc.SetSettingService(settingService)
 	svc.SetTokenCacheInvalidator(tokenCacheInvalidator)
 	svc.SetOllamaCloudUsageProbeScheduler(ollamaCloudUsage)
+	svc.dynamicQuotaUpdater = dynamicQuotaUpdater
 	return svc
 }
 
@@ -882,6 +900,7 @@ var ProviderSet = wire.NewSet(
 	ProvideBillingCacheService,
 	NewAnnouncementService,
 	NewAdminService,
+	NewGroupDynamicQuotaUpdater,
 	NewGatewayService,
 	NewOpenAIGatewayService,
 	ProvideImageStorageSettingService,
@@ -941,7 +960,7 @@ var ProviderSet = wire.NewSet(
 	NewTurnstileService,
 	NewTencentCaptchaService,
 	NewAliyunCaptchaService,
-	NewSubscriptionService,
+	ProvideSubscriptionService,
 	wire.Bind(new(DefaultSubscriptionAssigner), new(*SubscriptionService)),
 	ProvideConcurrencyService,
 	ProvideUserMessageQueueService,
