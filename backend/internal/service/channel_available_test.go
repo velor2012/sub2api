@@ -53,10 +53,13 @@ func (s *stubGroupRepoForAvailable) ListActiveByPlatform(ctx context.Context, pl
 func (s *stubGroupRepoForAvailable) ExistsByName(ctx context.Context, name string) (bool, error) {
 	return false, nil
 }
-func (*stubGroupRepoForAvailable) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+func (*stubGroupRepoForAvailable) UpdateDynamicQuotaState(context.Context, int64, *float64) (bool, error) {
 	return false, nil
 }
 func (*stubGroupRepoForAvailable) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
+func (*stubGroupRepoForAvailable) ListDynamicQuotaGroupsWithPositionMismatch(context.Context) ([]int64, error) {
 	return nil, nil
 }
 func (s *stubGroupRepoForAvailable) GetAccountCount(ctx context.Context, groupID int64) (int64, int64, error) {

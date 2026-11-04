@@ -10,32 +10,12 @@ import (
 
 type dynamicQuotaSubscriptionRepo struct {
 	UserSubscriptionRepository
-	sub        UserSubscription
-	countCalls int
-	countErr   error
-}
-
-func (r *dynamicQuotaSubscriptionRepo) GetByID(context.Context, int64) (*UserSubscription, error) {
-	sub := r.sub
-	return &sub, nil
+	sub UserSubscription
 }
 
 func (r *dynamicQuotaSubscriptionRepo) GetActiveByUserIDAndGroupID(context.Context, int64, int64) (*UserSubscription, error) {
 	sub := r.sub
 	return &sub, nil
-}
-
-func (r *dynamicQuotaSubscriptionRepo) ListByUserID(context.Context, int64) ([]UserSubscription, error) {
-	return []UserSubscription{r.sub}, nil
-}
-
-func (r *dynamicQuotaSubscriptionRepo) ListActiveByUserID(ctx context.Context, userID int64) ([]UserSubscription, error) {
-	return r.ListByUserID(ctx, userID)
-}
-
-func (r *dynamicQuotaSubscriptionRepo) CountActiveByGroupID(context.Context, int64) (int64, error) {
-	r.countCalls++
-	return 0, r.countErr
 }
 
 func TestSubscriptionDynamicQuotaConsumers(t *testing.T) {
@@ -103,20 +83,6 @@ func TestSubscriptionDynamicQuotaConsumers(t *testing.T) {
 					require.Zero(t, window.progress.RemainingUSD)
 				}
 			}
-			require.Zero(t, repo.countCalls, "quota checks must not count subscribers")
 		})
 	}
-}
-
-func TestSubscriptionListIgnoresDynamicSeatCounts(t *testing.T) {
-	group := &Group{
-		ID: 1, Platform: PlatformOpenAI, SubscriptionType: SubscriptionTypeSubscription,
-		DynamicQuotaEnabled: true, DynamicQuotaLimitUSD: ptrFloat64(5),
-	}
-	repo := &dynamicQuotaSubscriptionRepo{sub: UserSubscription{GroupID: 1, Group: group}}
-	svc := &SubscriptionService{userSubRepo: repo}
-	_, err := svc.ListActiveUserSubscriptions(context.Background(), 1)
-	require.NoError(t, err)
-	_, err = svc.ListUserSubscriptions(context.Background(), 1)
-	require.NoError(t, err, "ordinary subscriptions must not depend on dynamic seat counts")
 }

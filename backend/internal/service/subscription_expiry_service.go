@@ -138,33 +138,23 @@ func (s *SubscriptionExpiryService) refreshDynamicQuotaGroups(ctx context.Contex
 	}
 	seen := make(map[int64]struct{}, len(expiredGroupIDs))
 	for _, groupID := range expiredGroupIDs {
-		seen[groupID] = struct{}{}
-		s.refreshDynamicQuotaGroup(ctx, groupID)
-	}
-	subs, _, err := s.userSubRepo.List(ctx, pagination.PaginationParams{Page: 1, PageSize: 1000}, nil, nil, SubscriptionStatusActive, "", "id", "asc")
-	if err != nil {
-		log.Printf("[SubscriptionExpiry] List active subscriptions for quota reconcile failed: %v", err)
-		return
-	}
-	counts := make(map[int64]int64)
-	persisted := make(map[int64]int64)
-	for i := range subs {
-		sub := &subs[i]
-		if sub.Group == nil || !sub.Group.DynamicQuotaEnabled {
-			continue
-		}
-		if _, ok := counts[sub.GroupID]; !ok && sub.Group.DynamicQuotaPositions != nil {
-			persisted[sub.GroupID] = *sub.Group.DynamicQuotaPositions
-		}
-		counts[sub.GroupID]++
-	}
-	for groupID, live := range counts {
 		if _, ok := seen[groupID]; ok {
 			continue
 		}
-		if persisted[groupID] != live {
-			s.refreshDynamicQuotaGroup(ctx, groupID)
+		seen[groupID] = struct{}{}
+		s.refreshDynamicQuotaGroup(ctx, groupID)
+	}
+	groupIDs, err := s.dynamicQuotaUpdater.groupRepo.ListDynamicQuotaGroupsWithPositionMismatch(ctx)
+	if err != nil {
+		log.Printf("[SubscriptionExpiry] List dynamic groups for quota reconcile failed: %v", err)
+		return
+	}
+	for _, groupID := range groupIDs {
+		if _, ok := seen[groupID]; ok {
+			continue
 		}
+		seen[groupID] = struct{}{}
+		s.refreshDynamicQuotaGroup(ctx, groupID)
 	}
 }
 

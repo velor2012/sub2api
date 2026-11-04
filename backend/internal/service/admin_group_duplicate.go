@@ -215,6 +215,10 @@ func (s *adminServiceImpl) DuplicateGroup(ctx context.Context, id int64, actorSc
 	if s.groupDuplicateRepo == nil {
 		return nil, errors.New("group duplicate repository is not configured")
 	}
+	accountIDs, err := s.groupDynamicQuotaAccountIDs(ctx, source.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	duplicate := cloneGroupForDuplicate(source, duplicateGroupOperationID(id, actorScope, operationKey))
 	sanitizeGroupReasoningEffortPolicy(duplicate)
@@ -224,7 +228,7 @@ func (s *adminServiceImpl) DuplicateGroup(ctx context.Context, id int64, actorSc
 		duplicate.CreatedAt = time.Time{}
 		duplicate.UpdatedAt = time.Time{}
 		if err := s.groupDuplicateRepo.CreateFromSource(ctx, duplicate, source.ID); err == nil {
-			s.refreshGroupDynamicQuota(ctx, duplicate.ID)
+			s.refreshGroupAndAccountDynamicQuota(ctx, duplicate.ID, accountIDs)
 			hydrated, loadErr := s.groupRepo.GetByID(ctx, duplicate.ID)
 			if loadErr != nil {
 				return nil, fmt.Errorf("load duplicate group: %w", loadErr)

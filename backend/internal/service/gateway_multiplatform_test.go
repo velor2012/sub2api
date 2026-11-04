@@ -341,10 +341,13 @@ func (m *mockGroupRepoForGateway) ListActiveByPlatform(ctx context.Context, plat
 func (m *mockGroupRepoForGateway) ExistsByName(ctx context.Context, name string) (bool, error) {
 	return false, nil
 }
-func (*mockGroupRepoForGateway) UpdateDynamicQuotaState(context.Context, int64, *float64, int64) (bool, error) {
+func (*mockGroupRepoForGateway) UpdateDynamicQuotaState(context.Context, int64, *float64) (bool, error) {
 	return false, nil
 }
 func (*mockGroupRepoForGateway) ListDynamicGroupIDsByAccount(context.Context, int64) ([]int64, error) {
+	return nil, nil
+}
+func (*mockGroupRepoForGateway) ListDynamicQuotaGroupsWithPositionMismatch(context.Context) ([]int64, error) {
 	return nil, nil
 }
 func (m *mockGroupRepoForGateway) GetAccountCount(ctx context.Context, groupID int64) (int64, int64, error) {

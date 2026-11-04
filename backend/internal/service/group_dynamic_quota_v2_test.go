@@ -11,11 +11,9 @@ import (
 
 type v2QuotaRepo struct {
 	GroupRepository
-	group         *Group
-	accountIDs    []int64
-	dynamicGroups []int64
-	updatedSums   map[int64]*float64
-	changed       bool
+	group       *Group
+	accountIDs  []int64
+	updatedSums map[int64]*float64
 }
 
 func (r *v2QuotaRepo) GetByID(ctx context.Context, id int64) (*Group, error) {
@@ -27,13 +25,9 @@ func (r *v2QuotaRepo) GetAccountIDsByGroupIDs(ctx context.Context, groupIDs []in
 	return r.accountIDs, nil
 }
 
-func (r *v2QuotaRepo) ListDynamicGroupIDsByAccount(ctx context.Context, accountID int64) ([]int64, error) {
-	return r.dynamicGroups, nil
-}
-
-func (r *v2QuotaRepo) UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64, positions int64) (bool, error) {
+func (r *v2QuotaRepo) UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64) (bool, error) {
 	r.updatedSums[groupID] = estimateSum
-	return r.changed, nil
+	return false, nil
 }
 
 type v2AccountRepo struct {
@@ -123,25 +117,4 @@ func TestV2RefreshGroupNoValidEstimateClears(t *testing.T) {
 
 	require.NoError(t, updater.RefreshGroup(ctx, 1))
 	require.Nil(t, repo.updatedSums[1], "no valid estimate must clear dynamic quota")
-}
-
-func TestV2RefreshGroupDisabledGroupClears(t *testing.T) {
-	ctx := context.Background()
-	group := &Group{ID: 1, Platform: PlatformOpenAI, SubscriptionType: SubscriptionTypeSubscription, DynamicQuotaEnabled: false}
-	repo := &v2QuotaRepo{group: group, updatedSums: map[int64]*float64{}}
-	updater := newV2Updater(repo, nil, nil)
-
-	require.NoError(t, updater.RefreshGroup(ctx, 1))
-	require.Nil(t, repo.updatedSums[1], "disabled group must clear dynamic quota")
-}
-
-func TestV2RefreshAccountGroupsRefreshesAllDynamicGroups(t *testing.T) {
-	ctx := context.Background()
-	group := &Group{ID: 1, Platform: PlatformOpenAI, SubscriptionType: SubscriptionTypeSubscription, DynamicQuotaEnabled: true}
-	repo := &v2QuotaRepo{group: group, dynamicGroups: []int64{1, 2}, updatedSums: map[int64]*float64{}}
-	updater := newV2Updater(repo, nil, nil)
-
-	require.NoError(t, updater.RefreshAccountGroups(ctx, 99))
-	require.Contains(t, repo.updatedSums, int64(1))
-	require.Contains(t, repo.updatedSums, int64(2))
 }

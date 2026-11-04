@@ -87,7 +87,7 @@ func (r *groupRepository) Create(ctx context.Context, groupIn *service.Group) er
 	return nil
 }
 
-func (r *groupRepository) UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64, positions int64) (bool, error) {
+func (r *groupRepository) UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64) (bool, error) {
 	if estimateSum != nil && (*estimateSum <= 0 || math.IsNaN(*estimateSum) || math.IsInf(*estimateSum, 0)) {
 		estimateSum = nil
 	}
@@ -152,6 +152,34 @@ func (r *groupRepository) ListDynamicGroupIDsByAccount(ctx context.Context, acco
 			AND g.dynamic_quota_enabled
 		ORDER BY g.id
 	`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (r *groupRepository) ListDynamicQuotaGroupsWithPositionMismatch(ctx context.Context) ([]int64, error) {
+	rows, err := r.sql.QueryContext(ctx, `
+		SELECT g.id FROM groups g
+		WHERE g.deleted_at IS NULL AND g.platform = 'openai'
+			AND g.subscription_type = 'subscription' AND g.dynamic_quota_enabled
+			AND g.dynamic_quota_positions IS DISTINCT FROM (
+				SELECT count(*) FROM user_subscriptions us
+				JOIN users u ON u.id = us.user_id
+				WHERE us.group_id = g.id AND us.status = 'active'
+					AND us.expires_at > now() AND us.deleted_at IS NULL AND u.deleted_at IS NULL
+			)
+		ORDER BY g.id
+	`)
 	if err != nil {
 		return nil, err
 	}

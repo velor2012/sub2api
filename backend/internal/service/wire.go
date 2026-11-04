@@ -242,7 +242,6 @@ func ProvideAccountUsageService(
 	identityCache IdentityCache,
 	tlsFPProfileService *TLSFingerprintProfileService,
 	openAIGatewayService *OpenAIGatewayService,
-	gatewayService *GatewayService,
 	dynamicQuotaUpdater *GroupDynamicQuotaUpdater,
 ) *AccountUsageService {
 	service := NewAccountUsageService(
@@ -261,7 +260,6 @@ func ProvideAccountUsageService(
 	service.agentIdentityWS = openAIGatewayService
 	service.dynamicQuotaUpdater = dynamicQuotaUpdater
 	openAIGatewayService.dynamicQuotaUpdater = dynamicQuotaUpdater
-	gatewayService.dynamicQuotaUpdater = dynamicQuotaUpdater
 	return service
 }
 
@@ -453,6 +451,7 @@ func ProvideSubscriptionExpiryService(userSubRepo UserSubscriptionRepository, se
 	svc := NewSubscriptionExpiryService(userSubRepo, time.Minute)
 	svc.SetSettingRepository(settingRepo)
 	svc.SetNotificationEmailService(notificationEmailService)
+	svc.SetLeaderLock(lockCache, db)
 	svc.SetDynamicQuotaUpdater(dynamicQuotaUpdater)
 	svc.Start()
 	return svc

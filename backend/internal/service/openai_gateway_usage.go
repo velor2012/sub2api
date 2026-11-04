@@ -524,9 +524,6 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		return billingErr
 	}
 	writeUsageLogBestEffort(ctx, s.usageLogRepo, usageLog, "service.openai_gateway")
-	if account.Platform == PlatformOpenAI && apiKey.Group != nil && apiKey.Group.DynamicQuotaEnabled {
-		s.dynamicQuotaUpdater.AccountChanged(ctx, account.ID)
-	}
 
 	return nil
 }

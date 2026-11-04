@@ -264,9 +264,6 @@ func (f fakeGoogleSubscriptionRepo) IncrementUsage(ctx context.Context, id int64
 func (f fakeGoogleSubscriptionRepo) BatchUpdateExpiredStatus(ctx context.Context) ([]int64, error) {
 	return nil, errors.New("not implemented")
 }
-func (f fakeGoogleSubscriptionRepo) CountActiveByGroupID(context.Context, int64) (int64, error) {
-	return 0, errors.New("not implemented")
-}
 
 type googleErrorResponse struct {
 	Error struct {

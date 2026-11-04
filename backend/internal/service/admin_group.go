@@ -680,7 +680,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		group.AccountCount = int64(len(accountIDsToCopy))
 	}
 
-	s.refreshGroupDynamicQuota(ctx, group.ID)
+	s.refreshGroupAndAccountDynamicQuota(ctx, group.ID, accountIDsToCopy)
 	if s.dynamicQuotaUpdater != nil {
 		return s.groupRepo.GetByID(ctx, group.ID)
 	}
@@ -772,7 +772,7 @@ func (s *adminServiceImpl) validateFallbackGroupOnInvalidRequest(ctx context.Con
 	return nil
 }
 
-func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *UpdateGroupInput) (*Group, error) {
+func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *UpdateGroupInput) (updated *Group, updateErr error) {
 	group, err := s.groupRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -1092,9 +1092,20 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 		}
 	}
 
+	accountIDsToRefresh, err := s.groupDynamicQuotaAccountIDs(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.groupRepo.Update(ctx, group); err != nil {
 		return nil, err
 	}
+	// Update and binding replacement are separate writes; reconcile even if a later step fails.
+	defer func() {
+		s.refreshGroupAndAccountDynamicQuota(ctx, id, accountIDsToRefresh)
+		if updateErr == nil && s.dynamicQuotaUpdater != nil {
+			updated, updateErr = s.groupRepo.GetByID(ctx, id)
+		}
+	}()
 
 	if s.authCacheInvalidator != nil {
 		s.authCacheInvalidator.InvalidateAuthCacheByGroupID(ctx, id)
@@ -1166,6 +1177,9 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 			}
 			accountIDsToCopy = filtered
 		}
+		if s.dynamicQuotaUpdater != nil {
+			accountIDsToRefresh = append(accountIDsToRefresh, accountIDsToCopy...)
+		}
 
 		// 再绑定源分组的账号
 		if len(accountIDsToCopy) > 0 {
@@ -1175,10 +1189,6 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 		}
 	}
 
-	s.refreshGroupDynamicQuota(ctx, group.ID)
-	if s.dynamicQuotaUpdater != nil {
-		return s.groupRepo.GetByID(ctx, group.ID)
-	}
 	return group, nil
 }
 
@@ -1231,6 +1241,10 @@ func (s *adminServiceImpl) deleteGroup(ctx context.Context, id int64, requireEmp
 	if requireEmpty && s.emptyGroupDeleteRepo == nil {
 		return fmt.Errorf("guarded group deletion is unavailable")
 	}
+	accountIDs, err := s.groupDynamicQuotaAccountIDs(ctx, id)
+	if err != nil {
+		return err
+	}
 
 	var groupKeys []string
 	if s.authCacheInvalidator != nil {
@@ -1241,7 +1255,6 @@ func (s *adminServiceImpl) deleteGroup(ctx context.Context, id int64, requireEmp
 	}
 
 	var affectedUserIDs []int64
-	var err error
 	if requireEmpty {
 		affectedUserIDs, err = s.emptyGroupDeleteRepo.DeleteCascadeIfEmpty(ctx, id)
 	} else {
@@ -1270,6 +1283,7 @@ func (s *adminServiceImpl) deleteGroup(ctx context.Context, id int64, requireEmp
 			s.authCacheInvalidator.InvalidateAuthCacheByKey(ctx, key)
 		}
 	}
+	s.refreshGroupAndAccountDynamicQuota(ctx, 0, accountIDs)
 
 	return nil
 }

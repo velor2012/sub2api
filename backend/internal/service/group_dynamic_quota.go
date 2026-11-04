@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"time"
@@ -120,7 +121,7 @@ func (u *GroupDynamicQuotaUpdater) accountEstimate(ctx context.Context, account 
 }
 
 func (u *GroupDynamicQuotaUpdater) updateGroup(ctx context.Context, groupID int64, estimateSum *float64) error {
-	changed, err := u.groupRepo.UpdateDynamicQuotaState(ctx, groupID, estimateSum, 0)
+	changed, err := u.groupRepo.UpdateDynamicQuotaState(ctx, groupID, estimateSum)
 	if err != nil {
 		return err
 	}
@@ -155,4 +156,40 @@ func (s *adminServiceImpl) refreshDynamicQuotaGroups(ctx context.Context, groupI
 			}
 		}
 	}
+}
+
+func (s *adminServiceImpl) groupDynamicQuotaAccountIDs(ctx context.Context, groupID int64) ([]int64, error) {
+	if s.dynamicQuotaUpdater == nil {
+		return nil, nil
+	}
+	accountIDs, err := s.groupRepo.GetAccountIDsByGroupIDs(ctx, []int64{groupID})
+	if err != nil {
+		return nil, fmt.Errorf("snapshot group %d account bindings for dynamic quota: %w", groupID, err)
+	}
+	return accountIDs, nil
+}
+
+// Include old bindings after replacement/deletion; their remaining groups may recover.
+func (s *adminServiceImpl) refreshGroupAndAccountDynamicQuota(ctx context.Context, groupID int64, accountIDs []int64) {
+	if s.dynamicQuotaUpdater == nil {
+		return
+	}
+	var groupIDs []int64
+	if groupID > 0 {
+		groupIDs = append(groupIDs, groupID)
+	}
+	seenAccounts := make(map[int64]struct{}, len(accountIDs))
+	for _, accountID := range accountIDs {
+		if _, exists := seenAccounts[accountID]; exists {
+			continue
+		}
+		seenAccounts[accountID] = struct{}{}
+		neighbors, err := s.groupRepo.ListDynamicGroupIDsByAccount(ctx, accountID)
+		if err != nil {
+			slog.Warn("list_account_dynamic_quota_groups_failed", "account_id", accountID, "error", err)
+			continue
+		}
+		groupIDs = append(groupIDs, neighbors...)
+	}
+	s.refreshDynamicQuotaGroups(ctx, groupIDs)
 }

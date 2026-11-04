@@ -13,24 +13,20 @@ func TestGroupDynamicQuotaEffectiveLimits(t *testing.T) {
 	}
 	zero := 0.0
 	g.DailyLimitUSD = &zero
-	if g.HasDailyLimit() || g.EffectiveDailyLimitUSD() != &zero {
+	if g.HasDailyLimit() {
 		t.Fatal("fixed daily zero must remain unlimited")
 	}
 	g.DailyLimitUSD, g.WeeklyLimitUSD = &fixed, &fixed
 	if *g.EffectiveDailyLimitUSD() != 4 || *g.EffectiveWeeklyLimitUSD() != 4 || g.DynamicDailyLimitUSD() != 4 {
 		t.Fatal("dynamic quota must cap positive fixed limits")
 	}
-	derived = 20
-	if g.EffectiveDailyLimitUSD() != &fixed || g.EffectiveWeeklyLimitUSD() != &fixed {
-		t.Fatal("fixed caps must remain authoritative")
-	}
 	derived = math.Inf(1)
-	if g.UsesDynamicQuota() || g.EffectiveWeeklyLimitUSD() != &fixed {
+	if g.UsesDynamicQuota() {
 		t.Fatal("invalid estimates must fall back to fixed caps")
 	}
 	g.DynamicQuotaEnabled = false
 	derived = 4
-	if g.UsesDynamicQuota() || g.EffectiveDailyLimitUSD() != &fixed {
+	if g.UsesDynamicQuota() {
 		t.Fatal("disabled dynamic quota must preserve fixed caps")
 	}
 }

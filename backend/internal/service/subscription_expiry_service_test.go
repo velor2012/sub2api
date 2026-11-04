@@ -13,9 +13,7 @@ import (
 )
 
 type subscriptionExpiryRepoStub struct {
-	listCalls     int
-	expiredGroups []int64
-	activeSubs    []UserSubscription
+	listCalls int
 }
 
 func (r *subscriptionExpiryRepoStub) Create(context.Context, *UserSubscription) error {
@@ -68,7 +66,7 @@ func (r *subscriptionExpiryRepoStub) ListByGroupID(context.Context, int64, pagin
 
 func (r *subscriptionExpiryRepoStub) List(context.Context, pagination.PaginationParams, *int64, *int64, string, string, string, string) ([]UserSubscription, *pagination.PaginationResult, error) {
 	r.listCalls++
-	return r.activeSubs, &pagination.PaginationResult{Page: 1, Pages: 1}, nil
+	return nil, &pagination.PaginationResult{Page: 1, Pages: 1}, nil
 }
 
 func (r *subscriptionExpiryRepoStub) ExistsByUserIDAndGroupID(context.Context, int64, int64) (bool, error) {
@@ -116,11 +114,7 @@ func (r *subscriptionExpiryRepoStub) IncrementUsage(context.Context, int64, floa
 }
 
 func (r *subscriptionExpiryRepoStub) BatchUpdateExpiredStatus(context.Context) ([]int64, error) {
-	return r.expiredGroups, nil
-}
-
-func (r *subscriptionExpiryRepoStub) CountActiveByGroupID(context.Context, int64) (int64, error) {
-	return 0, nil
+	return nil, nil
 }
 
 type subscriptionExpirySettingRepoStub struct {
@@ -240,50 +234,4 @@ func TestSubscriptionExpiryService_SMTPConfigReadErrorSkipsReminderScan(t *testi
 	svc.sendExpiryReminders(context.Background())
 
 	require.Zero(t, repo.listCalls)
-}
-
-// expiryQuotaGroupRepo records which groups the expiry reconcile asked to refresh.
-type expiryQuotaGroupRepo struct {
-	GroupRepository
-	refreshed []int64
-}
-
-func (r *expiryQuotaGroupRepo) GetByID(_ context.Context, id int64) (*Group, error) {
-	r.refreshed = append(r.refreshed, id)
-	return &Group{ID: id}, nil
-}
-
-func (r *expiryQuotaGroupRepo) UpdateDynamicQuotaState(_ context.Context, _ int64, _ *float64, _ int64) (bool, error) {
-	return false, nil
-}
-
-func TestSubscriptionExpiryService_RefreshesExpiredAndMismatchedGroups(t *testing.T) {
-	persisted := int64(3)
-	dynamicGroup := &Group{
-		ID: 1, Platform: PlatformOpenAI, SubscriptionType: SubscriptionTypeSubscription,
-		DynamicQuotaEnabled: true, DynamicQuotaPositions: &persisted,
-	}
-	plainGroup := &Group{ID: 2}
-	repo := &subscriptionExpiryRepoStub{
-		expiredGroups: []int64{9},
-		// Group 1 has one live active subscription but persisted positions=3 → mismatch.
-		// Group 2 is not dynamic → never reconciled.
-		activeSubs: []UserSubscription{
-			{GroupID: 1, Group: dynamicGroup},
-			{GroupID: 2, Group: plainGroup},
-		},
-	}
-	svc := NewSubscriptionExpiryService(repo, time.Minute)
-	quotaGroups := &expiryQuotaGroupRepo{}
-	svc.SetDynamicQuotaUpdater(NewGroupDynamicQuotaUpdater(quotaGroups, nil, nil, nil))
-	svc.runOnce()
-	require.Equal(t, 1, repo.listCalls, "runOnce lists active subscriptions for reconcile")
-	require.Contains(t, quotaGroups.refreshed, int64(9), "expired group must be refreshed")
-	require.Contains(t, quotaGroups.refreshed, int64(1), "position mismatch must be reconciled")
-
-	// Without an updater the run must still expire subscriptions and not panic.
-	svc.dynamicQuotaUpdater = nil
-	repo.listCalls = 0
-	svc.runOnce()
-	require.Zero(t, repo.listCalls, "no updater means no reconcile scan")
 }

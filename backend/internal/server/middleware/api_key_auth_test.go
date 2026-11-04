@@ -1792,7 +1792,3 @@ func (r *stubUserSubscriptionRepo) IncrementUsage(ctx context.Context, id int64,
 func (r *stubUserSubscriptionRepo) BatchUpdateExpiredStatus(ctx context.Context) ([]int64, error) {
 	return nil, errors.New("not implemented")
 }
-
-func (r *stubUserSubscriptionRepo) CountActiveByGroupID(context.Context, int64) (int64, error) {
-	return 0, errors.New("not implemented")
-}

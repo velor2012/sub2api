@@ -5,6 +5,7 @@ package server_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"math"
@@ -308,98 +309,6 @@ func TestAPIContracts(t *testing.T) {
 					"page_size": 10,
 					"pages": 1
 				}
-			}`,
-		},
-		{
-			name: "GET /api/v1/groups/available",
-			setup: func(t *testing.T, deps *contractDeps) {
-				t.Helper()
-				// 普通用户可见的分组列表不应包含内部字段（如 model_routing/account_count），
-				// 也不得包含利润控制配置——它与同响应的 rate_multiplier 相乘即可反推上游成本上限。
-				deps.groupRepo.SetActive([]service.Group{
-					{
-						ID:                   10,
-						Name:                 "Group One",
-						Description:          "desc",
-						Platform:             service.PlatformAnthropic,
-						RateMultiplier:       1.5,
-						PeakRateMultiplier:   1.0,
-						IsExclusive:          false,
-						Status:               service.StatusActive,
-						SubscriptionType:     service.SubscriptionTypeStandard,
-						ProfitControlEnabled: true,
-						ProfitMinMargin:      0.3,
-						ProfitSafetyBuffer:   0.05,
-						ModelRoutingEnabled:  true,
-						ModelRouting: map[string][]int64{
-							"claude-3-*": []int64{101, 102},
-						},
-						AccountCount: 2,
-						CreatedAt:    deps.now,
-						UpdatedAt:    deps.now,
-					},
-				})
-				deps.userSubRepo.SetActiveByUserID(1, nil)
-			},
-			method:     http.MethodGet,
-			path:       "/api/v1/groups/available",
-			wantStatus: http.StatusOK,
-			wantJSON: `{
-				"code": 0,
-				"message": "success",
-				"data": [
-					{
-						"id": 10,
-						"name": "Group One",
-						"description": "desc",
-						"platform": "anthropic",
-						"rate_multiplier": 1.5,
-						"peak_rate_enabled": false,
-						"peak_start": "",
-						"peak_end": "",
-						"peak_rate_multiplier": 1,
-						"is_exclusive": false,
-						"status": "active",
-						"subscription_type": "standard",
-						"daily_limit_usd": null,
-						"weekly_limit_usd": null,
-						"monthly_limit_usd": null,
-						"long_context_pricing_enabled": false,
-						"image_price_1k": null,
-						"image_price_2k": null,
-						"image_price_4k": null,
-						"video_price_480p": null,
-						"video_price_720p": null,
-						"video_price_1080p": null,
-						"web_search_price_per_call": null,
-						"search_price_per_1k": null,
-						"audio_tts_price_per_million_chars": null,
-						"audio_stt_price_per_hour": null,
-						"audio_realtime_price_per_min": null,
-						"allow_image_generation": false,
-						"allow_batch_image_generation": false,
-						"image_count_billing": false,
-						"batch_image_discount_multiplier": 0,
-						"batch_image_hold_multiplier": 0,
-						"image_rate_independent": false,
-						"image_rate_multiplier": 0,
-						"video_rate_independent": false,
-						"video_rate_multiplier": 0,
-						"claude_code_only": false,
-						"allow_messages_dispatch": false,
-						"allow_live": false,
-						"fallback_group_id": null,
-						"fallback_group_id_on_invalid_request": null,
-						"require_oauth_only": false,
-						"require_privacy_set": false,
-						"max_reasoning_effort": "",
-						"max_reasoning_effort_over_limit": "",
-						"reasoning_effort_mappings": null,
-						"rpm_limit": 0,
-						"created_at": "2025-01-02T03:04:05Z",
-						"updated_at": "2025-01-02T03:04:05Z"
-					}
-				]
 			}`,
 		},
 		{
@@ -1430,6 +1339,42 @@ func TestAPIContracts(t *testing.T) {
 	}
 }
 
+func TestAvailableGroupsHideInternalConfiguration(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	deps := newContractDeps(t)
+	deps.groupRepo.SetActive([]service.Group{{
+		ID:                   10,
+		Name:                 "Group One",
+		Platform:             service.PlatformAnthropic,
+		RateMultiplier:       1.5,
+		Status:               service.StatusActive,
+		SubscriptionType:     service.SubscriptionTypeStandard,
+		ProfitControlEnabled: true,
+		ProfitMinMargin:      0.3,
+		ProfitSafetyBuffer:   0.05,
+		ModelRoutingEnabled:  true,
+		ModelRouting:         map[string][]int64{"claude-3-*": {101, 102}},
+		AccountCount:         2,
+	}})
+	deps.userSubRepo.SetActiveByUserID(1, nil)
+
+	status, body := doRequest(t, deps.router, http.MethodGet, "/api/v1/groups/available", "", nil)
+	require.Equal(t, http.StatusOK, status)
+	var response struct {
+		Code int              `json:"code"`
+		Data []map[string]any `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(body), &response))
+	require.Zero(t, response.Code)
+	require.Len(t, response.Data, 1)
+	for _, field := range []string{
+		"model_routing_enabled", "model_routing", "account_count",
+		"profit_control_enabled", "profit_min_margin", "profit_safety_buffer",
+	} {
+		require.NotContains(t, response.Data[0], field)
+	}
+}
+
 type contractDeps struct {
 	now         time.Time
 	router      http.Handler
@@ -2318,9 +2263,6 @@ func (stubUserSubscriptionRepo) IncrementUsage(ctx context.Context, id int64, co
 }
 func (stubUserSubscriptionRepo) BatchUpdateExpiredStatus(ctx context.Context) ([]int64, error) {
 	return nil, errors.New("not implemented")
-}
-func (stubUserSubscriptionRepo) CountActiveByGroupID(context.Context, int64) (int64, error) {
-	return 0, errors.New("not implemented")
 }
 
 type stubApiKeyRepo struct {

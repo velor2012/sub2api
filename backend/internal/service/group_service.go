@@ -19,8 +19,9 @@ type GroupRepository interface {
 	GetByID(ctx context.Context, id int64) (*Group, error)
 	GetByIDLite(ctx context.Context, id int64) (*Group, error)
 	Update(ctx context.Context, group *Group) error
-	UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64, positions int64) (bool, error)
+	UpdateDynamicQuotaState(ctx context.Context, groupID int64, estimateSum *float64) (bool, error)
 	ListDynamicGroupIDsByAccount(ctx context.Context, accountID int64) ([]int64, error)
+	ListDynamicQuotaGroupsWithPositionMismatch(ctx context.Context) ([]int64, error)
 	Delete(ctx context.Context, id int64) error
 	DeleteCascade(ctx context.Context, id int64) ([]int64, error)
 
